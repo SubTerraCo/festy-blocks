@@ -4,7 +4,7 @@ import { getHoursOffTarget, buildTimeSlots } from '../data/settings';
 import { DayJumpBar } from './AppNav';
 import { ui } from '../ui';
 
-export default function WishlistPicker({ team, memberId, wishlists, setWishlists, onSave, settings }) {
+export default function WishlistPicker({ team, memberId, wishlists, setWishlists, onSave, settings, readOnly = false }) {
   const [graphicDay, setGraphicDay] = useState('friday');
   const [showOfficialSchedule, setShowOfficialSchedule] = useState(false);
   const dayRefs = useRef({});
@@ -25,6 +25,7 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
   };
 
   const handleToggleSlot = (day, slotId) => {
+    if (readOnly) return;
     const pickStr = `${day}|${slotId}`;
     setWishlists((prev) => {
       const current = prev[memberId] || [];
@@ -44,6 +45,7 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
   };
 
   const clearDayPicks = (day) => {
+    if (readOnly) return;
     if (confirm(`Clear all of ${member.name}'s picks for ${day}?`)) {
       setWishlists((prev) => {
         const current = prev[memberId] || [];
@@ -53,6 +55,7 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
   };
 
   const clearAllPicks = () => {
+    if (readOnly) return;
     if (confirm(`Clear all of ${member.name}'s picks for the whole weekend?`)) {
       setWishlists((prev) => ({ ...prev, [memberId]: [] }));
     }
@@ -123,9 +126,11 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
             </div>
 
             <div className="flex gap-2 w-full md:w-auto flex-wrap">
-              <button type="button" onClick={clearAllPicks} className="px-3 py-2 rounded-lg font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition text-sm">
-                Clear All
-              </button>
+              {!readOnly && (
+                <button type="button" onClick={clearAllPicks} className="px-3 py-2 rounded-lg font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition text-sm">
+                  Clear All
+                </button>
+              )}
               <button type="button" onClick={() => setShowOfficialSchedule(!showOfficialSchedule)} className={ui.btnPurple}>
                 {showOfficialSchedule ? 'Hide Graphic' : 'Show Graphic'}
               </button>
@@ -196,7 +201,7 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
                         : ` — ${picksLeft} remaining`}
                     </p>
                   </div>
-                  {currentDayPicks.length > 0 && (
+                  {!readOnly && currentDayPicks.length > 0 && (
                     <button
                       type="button"
                       onClick={() => clearDayPicks(day)}
@@ -254,7 +259,7 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
                         <div className="md:w-1/2 flex flex-col justify-center">
                           <button
                             type="button"
-                            disabled={isGrayed}
+                            disabled={isGrayed || readOnly}
                             onClick={() => handleToggleSlot(day, slot.id)}
                             className={`border-2 rounded-lg p-4 h-full min-h-[6.5rem] flex flex-col justify-center transition relative overflow-hidden text-left w-full ${
                               isSelected

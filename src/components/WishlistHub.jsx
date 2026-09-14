@@ -19,7 +19,14 @@ export default function WishlistHub({
   onBack,
   onOpenSettings,
   onGoToSwaps,
+  role = 'solo',
+  currentMemberId = null,
 }) {
+  const isMember = role === 'member';
+  const visibleTeam = isMember
+    ? team.filter((m) => m.id === currentMemberId)
+    : team;
+
   const getProgress = (member) => {
     const target = getHoursOffTarget(member, settings);
     const picks = wishlists[member.id] || [];
@@ -38,23 +45,33 @@ export default function WishlistHub({
 
   return (
     <PageShell
-      title="Team Wishlists"
-      subtitle="Request preferred time off. Resolve fills a tentative schedule. When hours are filled, use Schedule Swaps."
+      title={isMember ? 'My Wishlist' : 'Team Wishlists'}
+      subtitle={
+        isMember
+          ? 'Request your preferred time off. Your picks sync to the facilitator in real time.'
+          : 'Request preferred time off. Resolve fills a tentative schedule. When hours are filled, use Schedule Swaps.'
+      }
       actions={
-        <>
-          <button type="button" onClick={onBack} className={ui.btnGhost}>&larr; Setup</button>
-          <button type="button" onClick={onOpenSettings} className={ui.btnSecondary}>Settings</button>
-        </>
+        isMember ? null : (
+          <>
+            <button type="button" onClick={onBack} className={ui.btnGhost}>&larr; Setup</button>
+            <button type="button" onClick={onOpenSettings} className={ui.btnSecondary}>Settings</button>
+          </>
+        )
       }
     >
       <InfoBanner>
         <strong>{shifts} shifts/day</strong>
         {' '}· {formatDecimalHour(settings.dayStartHour)} – {formatDecimalHour(settings.dayEndHour)}
         {' '}· {settings.shiftLengthHours}h each
-        {' '}· conflict: <span className="capitalize">{(settings.conflictStrategy || '').replace(/_/g, ' ')}</span>
+        {!isMember && (
+          <>
+            {' '}· conflict: <span className="capitalize">{(settings.conflictStrategy || '').replace(/_/g, ' ')}</span>
+          </>
+        )}
       </InfoBanner>
 
-      {scheduleFilled && (
+      {scheduleFilled && !isMember && (
         <InfoBanner tone="blue">
           <strong>Working hours are filled.</strong> Further changes should go through Schedule → Swaps (or Manual Edit).
           <div className="mt-3">
@@ -67,11 +84,14 @@ export default function WishlistHub({
 
       <PageCard className="mb-5">
         <div className="space-y-3">
-          {team.length === 0 ? (
-            <p className="text-slate-400 italic">No team members yet — go to Setup first.</p>
-          ) : team.map(member => {
+          {visibleTeam.length === 0 ? (
+            <p className="text-slate-400 italic">
+              {isMember ? 'Your profile is not loaded yet.' : 'No team members yet — go to Setup first.'}
+            </p>
+          ) : visibleTeam.map(member => {
             const { totalPicks, daysComplete, target, targetTotal } = getProgress(member);
             const hoursOn = getHoursOnRequired(member, settings);
+            const canEdit = !isMember || member.id === currentMemberId;
             return (
               <div key={member.id} className="flex items-center justify-between border border-slate-200 dark:border-slate-700 p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 gap-3">
                 <div>
@@ -89,14 +109,16 @@ export default function WishlistHub({
                     )}
                   </p>
                 </div>
-                {scheduleFilled ? (
-                  <button type="button" onClick={onGoToSwaps} className={ui.btnSecondary}>
-                    Request Swap
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => onPickFor(member.id)} className={ui.btnSecondary}>
-                    {totalPicks > 0 ? 'Edit Picks' : 'Start Picks'}
-                  </button>
+                {canEdit && (
+                  scheduleFilled && !isMember ? (
+                    <button type="button" onClick={onGoToSwaps} className={ui.btnSecondary}>
+                      Request Swap
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => onPickFor(member.id)} className={ui.btnSecondary}>
+                      {totalPicks > 0 ? 'Edit Picks' : 'Start Picks'}
+                    </button>
+                  )
                 )}
               </div>
             );
@@ -104,13 +126,13 @@ export default function WishlistHub({
         </div>
       </PageCard>
 
-      {!scheduleFilled && (
+      {!isMember && !scheduleFilled && (
         <button type="button" onClick={onResolve} className={`w-full py-4 text-lg ${ui.btnPrimary.replace('py-2.5', 'py-4')}`}>
           {allWishlistsExact ? 'Resolve Schedule & Conflicts' : 'Resolve Tentative Schedule'}
         </button>
       )}
 
-      {scheduleFilled && (
+      {!isMember && scheduleFilled && (
         <button type="button" onClick={onGoToSwaps} className={`w-full py-4 text-lg ${ui.btnSuccess.replace('py-2.5', 'py-4')}`}>
           Open Schedule Swaps
         </button>

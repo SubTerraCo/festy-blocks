@@ -139,6 +139,8 @@ function App() {
             settings={settings}
             setSettings={setSettings}
             onComplete={() => setAppState('wishlist_hub')}
+            sessionMode={facilitatorMode}
+            sessionCode={session?.code || null}
           />
         )}
 
@@ -178,6 +180,7 @@ function App() {
             wishlists={wishlists}
             setWishlists={setWishlists}
             settings={settings}
+            readOnly={memberMode && currentPickerId !== currentMemberId}
             onSave={() => {
               if (memberMode) {
                 // members stay on their own picker

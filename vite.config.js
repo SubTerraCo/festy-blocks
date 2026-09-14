@@ -12,7 +12,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false, // we register manually in main.jsx
       // Large marketing PNG (schedule graphic) is loaded on demand — don't precache.
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-512x512.png'],
       manifest: {
         name: 'Festy Blocks',
         short_name: 'Festy Blocks',
@@ -25,21 +25,33 @@ export default defineConfig({
         background_color: '#0b1220',
         icons: [
           {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
             src: 'favicon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any',
           },
-          {
-            src: 'favicon.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'maskable',
-          },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,ico,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
         // Exclude the large official schedule graphic from precache — served
         // live on demand and cached opportunistically by the runtime handler.
         globIgnores: ['**/schedule.png'],

@@ -4,26 +4,63 @@ import CoverageDashboard from './CoverageDashboard';
 import { PageShell, PageCard, InfoBanner } from './AppNav';
 import { ui } from '../ui';
 import { mergeSettings, getShiftsPerDay, formatDecimalHour } from '../data/settings';
+import { generatePin, hashPin } from '../data/firebase';
 
-export default function TeamSetup({ team, setTeam, settings, setSettings, onComplete }) {
+export default function TeamSetup({
+  team,
+  setTeam,
+  settings,
+  setSettings,
+  onComplete,
+  sessionMode = false,
+  sessionCode = null,
+}) {
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('regular');
   const [step, setStep] = useState('schedule');
+  /** Plain PINs shown to facilitator (not stored in Firestore — only pinHash is). */
+  const [memberPins, setMemberPins] = useState({});
+  const [adding, setAdding] = useState(false);
 
-  const handleAddMember = (e) => {
+  const handleAddMember = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
-    setTeam([...team, {
-      id: crypto.randomUUID(),
-      name: newName.trim(),
-      role: newRole,
-      hoursWorked: 0
-    }]);
-    setNewName('');
+    if (!newName.trim() || adding) return;
+    setAdding(true);
+    try {
+      const id = crypto.randomUUID();
+      const member = {
+        id,
+        name: newName.trim(),
+        role: newRole,
+        hoursWorked: 0,
+      };
+      if (sessionMode) {
+        const plainPin = generatePin();
+        member.pinHash = await hashPin(plainPin);
+        setMemberPins((prev) => ({ ...prev, [id]: plainPin }));
+      }
+      setTeam([...team, member]);
+      setNewName('');
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleRemoveMember = (id) => {
-    setTeam(team.filter(member => member.id !== id));
+    setMemberPins((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setTeam(team.filter((member) => member.id !== id));
+  };
+
+  const copyPin = async (pin) => {
+    try {
+      await navigator.clipboard.writeText(pin);
+    } catch {
+      /* clipboard may be unavailable */
+    }
   };
 
   const moveMember = (index, direction) => {
@@ -85,6 +122,12 @@ export default function TeamSetup({ team, setTeam, settings, setSettings, onComp
         </button>
       }
     >
+      {sessionMode && sessionCode && (
+        <InfoBanner tone="blue">
+          <strong>Session {sessionCode}</strong> — share this code with crew. Each member gets a PIN below when you add them.
+        </InfoBanner>
+      )}
+
       <InfoBanner>
         <strong>{shifts} shifts/day</strong>
         {' '}({formatDecimalHour(settings.dayStartHour)} – {formatDecimalHour(settings.dayEndHour)},{' '}
@@ -114,7 +157,9 @@ export default function TeamSetup({ team, setTeam, settings, setSettings, onComp
               <option value="volunteer">Volunteer</option>
             </select>
           </div>
-          <button type="submit" className={ui.btnPrimary}>Add Member</button>
+          <button type="submit" disabled={adding} className={ui.btnPrimary}>
+            {adding ? 'Adding…' : 'Add Member'}
+          </button>
         </form>
 
         <h3 className="text-lg font-semibold mb-2 text-slate-800 dark:text-slate-100">Draft Order ({team.length})</h3>
@@ -131,6 +176,21 @@ export default function TeamSetup({ team, setTeam, settings, setSettings, onComp
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-100">{member.name}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{member.role}</p>
+                    {sessionMode && memberPins[member.id] && (
+                      <p className="text-xs mt-1 font-mono text-indigo-600 dark:text-indigo-400">
+                        PIN: {memberPins[member.id]}
+                        <button
+                          type="button"
+                          onClick={() => copyPin(memberPins[member.id])}
+                          className="ml-2 text-indigo-500 hover:underline font-sans"
+                        >
+                          Copy
+                        </button>
+                      </p>
+                    )}
+                    {sessionMode && !memberPins[member.id] && member.pinHash && (
+                      <p className="text-xs mt-1 text-slate-400 italic">PIN set (refresh to regenerate)</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
