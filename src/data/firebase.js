@@ -8,7 +8,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 /**
  * Firebase config is read from Vite env vars (VITE_FIREBASE_*).
- * See .env.example for the required keys.
+ * See `.env.local` for the required keys (gitignored).
  *
  * All values are considered public (they identify the project, not
  * secrets). Real security is enforced by Firestore rules + anonymous auth.
