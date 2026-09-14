@@ -1,0 +1,12 @@
+---
+description: Versioning format for the project
+globs: *
+alwaysApply: true
+---
+
+# Versioning Format
+
+Use the `yy.mm.ddbx` format for all versions going forward where `bx` iterates every prompt sent each day.
+Each new day is based off of the local date in Denver, CO (Mountain Time).
+
+Example: `26.09.13b2` (for 2026, September 13th, 2nd prompt of the day).

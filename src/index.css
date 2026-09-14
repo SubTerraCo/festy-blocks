@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  --app-nav-height: 7.5rem;
+  --app-bg: #f1f5f9;
+  --app-surface: #ffffff;
+  --app-surface-2: #f8fafc;
+  --app-text: #0f172a;
+  --app-text-muted: #475569;
+  --app-border: #e2e8f0;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --app-nav-height: 4.25rem;
+  }
+}
+
+.dark {
+  --app-bg: #0b1220;
+  --app-surface: #111827;
+  --app-surface-2: #1e293b;
+  --app-text: #f1f5f9;
+  --app-text-muted: #94a3b8;
+  --app-border: #334155;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.app-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+}
+
+.app-main {
+  padding-top: calc(var(--app-nav-height) + 1.25rem);
+}
+
+.app-substicky {
+  position: sticky;
+  top: var(--app-nav-height);
+  z-index: 50;
+}
+
+.scroll-under-stickies {
+  scroll-margin-top: calc(var(--app-nav-height) + 12rem);
+}
+
+.app-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-muted {
+  color: var(--app-text-muted);
+}
