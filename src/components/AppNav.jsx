@@ -15,7 +15,7 @@ export default function AppNav({ appState, onNavigate }) {
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg sm:text-xl font-bold tracking-tight">Festy Blocks</h1>
-          <p className="text-blue-100 text-xs hidden sm:block">Shift wishlist · conflict draft · schedule <span className="opacity-75">(v26.09.14b3)</span></p>
+          <p className="text-blue-100 text-xs hidden sm:block">Shift wishlist · conflict draft · schedule <span className="opacity-75">(v26.09.14b4)</span></p>
         </div>
 
         <nav className="flex gap-1.5 flex-wrap">
