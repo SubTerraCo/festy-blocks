@@ -1,25 +1,73 @@
 import { ui } from '../ui';
 
 const NAV_ITEMS = [
-  { id: 'setup', label: 'Setup', states: ['setup'] },
-  { id: 'wishlist', label: 'Wishlist', states: ['wishlist_hub', 'wishlist_picker', 'resolve'] },
-  { id: 'draft', label: 'Draft', states: ['draft'] },
-  { id: 'schedule', label: 'Schedule', states: ['schedule'] },
-  { id: 'timeclock', label: 'Time Clock', states: ['timeclock'] },
-  { id: 'settings', label: 'Settings', states: ['settings'] },
+  { id: 'setup', label: 'Setup', states: ['setup'], roles: ['solo', 'facilitator'] },
+  {
+    id: 'wishlist',
+    label: 'Wishlist',
+    states: ['wishlist_hub', 'wishlist_picker', 'resolve'],
+    roles: ['solo', 'facilitator', 'member'],
+  },
+  { id: 'draft', label: 'Draft', states: ['draft'], roles: ['solo', 'facilitator'] },
+  {
+    id: 'schedule',
+    label: 'Schedule',
+    states: ['schedule'],
+    roles: ['solo', 'facilitator', 'member'],
+    memberRequiresPublished: true,
+  },
+  { id: 'timeclock', label: 'Time Clock', states: ['timeclock'], roles: ['solo', 'facilitator'] },
+  { id: 'settings', label: 'Settings', states: ['settings'], roles: ['solo', 'facilitator'] },
 ];
 
-export default function AppNav({ appState, onNavigate }) {
+export default function AppNav({
+  appState,
+  onNavigate,
+  role = 'solo',
+  mode = 'solo',
+  sessionCode = null,
+  published = false,
+}) {
+  const items = NAV_ITEMS.filter((item) => {
+    if (!item.roles.includes(role)) return false;
+    if (item.memberRequiresPublished && role === 'member' && !published) return false;
+    return true;
+  });
+  const showLeave = mode === 'session';
+
   return (
     <header className="app-nav bg-blue-600 text-white shadow-md print:hidden">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight">Festy Blocks</h1>
-          <p className="text-blue-100 text-xs hidden sm:block">Shift wishlist · conflict draft · schedule <span className="opacity-75">(v26.09.14b4)</span></p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight">Festy Blocks</h1>
+            {mode === 'session' && sessionCode && (
+              <span className="bg-white/15 border border-white/30 rounded-md px-2 py-0.5 text-xs font-mono tracking-widest uppercase">
+                {sessionCode}
+              </span>
+            )}
+            {mode === 'session' && (
+              <span
+                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                  role === 'facilitator'
+                    ? 'bg-amber-400 text-amber-950'
+                    : role === 'member'
+                      ? 'bg-emerald-400 text-emerald-950'
+                      : 'bg-slate-200 text-slate-800'
+                }`}
+              >
+                {role}
+              </span>
+            )}
+          </div>
+          <p className="text-blue-100 text-xs hidden sm:block">
+            Shift wishlist · conflict draft · schedule{' '}
+            <span className="opacity-75">(v26.09.14b5)</span>
+          </p>
         </div>
 
         <nav className="flex gap-1.5 flex-wrap">
-          {NAV_ITEMS.map(item => {
+          {items.map((item) => {
             const active = item.states.includes(appState);
             return (
               <button
@@ -36,6 +84,16 @@ export default function AppNav({ appState, onNavigate }) {
               </button>
             );
           })}
+          {showLeave && (
+            <button
+              type="button"
+              onClick={() => onNavigate('lobby')}
+              className="px-3 py-1.5 rounded-lg text-sm font-semibold transition bg-blue-800/50 text-white hover:bg-blue-900/60"
+              title="Leave this session"
+            >
+              Leave
+            </button>
+          )}
         </nav>
       </div>
     </header>

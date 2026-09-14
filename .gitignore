@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env / secrets — keep firebase web keys out of git in case the repo
+# ever goes public. Committed .env.example documents required keys.
+.env
+.env.local
+.env.*.local
+
+# Firebase local caches
+.firebase/
+firebase-debug.log
+firestore-debug.log

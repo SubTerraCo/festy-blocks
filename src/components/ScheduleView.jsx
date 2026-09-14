@@ -21,10 +21,18 @@ export default function ScheduleView({
   settings,
   onBack,
   initialMode = 'master', // 'master' | 'personal' | 'manual' | 'swaps'
+  role = 'solo',
+  currentMemberId = null,
+  isPublished = false,
+  onPublish = null,
 }) {
+  const readOnly = role === 'member';
+  const initialViewMode = readOnly ? 'personal' : initialMode;
   const [selectedDay, setSelectedDay] = useState('friday');
-  const [viewMode, setViewMode] = useState(initialMode);
-  const [selectedMember, setSelectedMember] = useState(team[0]?.id || null);
+  const [viewMode, setViewMode] = useState(initialViewMode);
+  const [selectedMember, setSelectedMember] = useState(
+    readOnly ? currentMemberId : team[0]?.id || null
+  );
   const [swapFlow, setSwapFlow] = useState(null);
   // { step, day, slotId, requesterId, partnerId }
 
@@ -33,8 +41,13 @@ export default function ScheduleView({
   const complete = isTeamScheduleComplete(team, schedule, settings);
 
   useEffect(() => {
+    if (readOnly) {
+      setViewMode('personal');
+      if (currentMemberId) setSelectedMember(currentMemberId);
+      return;
+    }
     if (initialMode) setViewMode(initialMode);
-  }, [initialMode]);
+  }, [initialMode, readOnly, currentMemberId]);
 
   // Ensure schedule has all slots for current settings
   useEffect(() => {
@@ -174,48 +187,72 @@ export default function ScheduleView({
   return (
     <PageShell
       wide
-      title="Festival Shift Schedule"
+      title={readOnly ? 'Your Festival Schedule' : 'Festival Shift Schedule'}
       subtitle={
-        complete
-          ? 'Hours are filled — use Manual Edit or Request Shift Swap to fine-tune.'
-          : 'Tentative schedule from wishlist/draft. Use Manual Edit anytime, or finish hours then swap.'
+        readOnly
+          ? isPublished
+            ? 'Read-only view — updates automatically when the facilitator makes changes.'
+            : 'Waiting for the facilitator to publish the final schedule.'
+          : complete
+            ? 'Hours are filled — use Manual Edit or Request Shift Swap to fine-tune.'
+            : 'Tentative schedule from wishlist/draft. Use Manual Edit anytime, or finish hours then swap.'
       }
       actions={
         <>
-          <button type="button" onClick={onBack} className={`${ui.btnGhost} print:hidden`}>&larr; Draft</button>
+          {!readOnly && (
+            <button type="button" onClick={onBack} className={`${ui.btnGhost} print:hidden`}>&larr; Draft</button>
+          )}
           <button type="button" onClick={handlePrint} className={`${ui.btnSuccess} print:hidden`}>Print</button>
+          {onPublish && (
+            <button
+              type="button"
+              onClick={onPublish}
+              className={`${isPublished ? ui.btnSecondary : ui.btnPrimary} print:hidden`}
+              title={isPublished ? 'Schedule is already published to members' : 'Publish this schedule so members can view it read-only'}
+            >
+              {isPublished ? 'Re-publish' : 'Publish to members'}
+            </button>
+          )}
         </>
       }
     >
-      {complete && (
+      {complete && !readOnly && (
         <InfoBanner tone="blue">
           <strong>Schedule ready.</strong> All working hours are filled to target. Use <strong>Swaps</strong> or{' '}
           <strong>Manual Edit</strong> below.
         </InfoBanner>
       )}
 
+      {readOnly && !isPublished && (
+        <InfoBanner tone="orange">
+          <strong>Not published yet.</strong> The facilitator will publish once the draft is finalized. This screen will update automatically.
+        </InfoBanner>
+      )}
+
       <PageCard>
-        <div className="flex justify-center mb-5 print:hidden">
-          <div className="bg-slate-200 p-1 rounded-lg flex flex-wrap gap-1">
-            {[
-              { id: 'master', label: 'Master' },
-              { id: 'manual', label: 'Manual Edit' },
-              { id: 'swaps', label: 'Swaps' },
-              { id: 'personal', label: 'Per Person' },
-            ].map(mode => (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() => setViewMode(mode.id)}
-                className={`px-4 py-2 rounded-md font-bold text-sm transition ${
-                  viewMode === mode.id ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:bg-slate-300'
-                }`}
-              >
-                {mode.label}
-              </button>
-            ))}
+        {!readOnly && (
+          <div className="flex justify-center mb-5 print:hidden">
+            <div className="bg-slate-200 p-1 rounded-lg flex flex-wrap gap-1">
+              {[
+                { id: 'master', label: 'Master' },
+                { id: 'manual', label: 'Manual Edit' },
+                { id: 'swaps', label: 'Swaps' },
+                { id: 'personal', label: 'Per Person' },
+              ].map(mode => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setViewMode(mode.id)}
+                  className={`px-4 py-2 rounded-md font-bold text-sm transition ${
+                    viewMode === mode.id ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:bg-slate-300'
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex gap-2 mb-5 print:hidden">
           {DAYS.map(day => (
@@ -459,18 +496,20 @@ export default function ScheduleView({
         {/* PERSONAL */}
         {viewMode === 'personal' && (
           <>
-            <div className="mb-4 print:hidden">
-              <label className={ui.label}>Team Member</label>
-              <select
-                value={selectedMember || ''}
-                onChange={e => setSelectedMember(e.target.value)}
-                className={ui.input}
-              >
-                {team.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-            </div>
+            {!readOnly && (
+              <div className="mb-4 print:hidden">
+                <label className={ui.label}>Team Member</label>
+                <select
+                  value={selectedMember || ''}
+                  onChange={e => setSelectedMember(e.target.value)}
+                  className={ui.input}
+                >
+                  {team.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {selectedMember && (
               <div className="border-2 border-slate-800 p-5 rounded-xl">

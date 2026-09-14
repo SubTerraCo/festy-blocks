@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// Festy Blocks Firestore rules
+// Model:
+//   sessions/{roomCode}                     (session doc; facilitator writes)
+//     members/{memberId}                    (facilitator manages; member self-claims)
+//     wishlists/{memberId}                  (member writes own; facilitator writes any)
+//
+// Auth is anonymous — knowing the room code (doc id) grants read access.
+// Facilitator identity is tracked by uid in sessions/{code}.facilitatorUid.
+// Member identity is proved out-of-band by a shared PIN (verified client-side)
+// and pinned to the device by setting members/{id}.claimedByUid on first claim.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    match /sessions/{roomCode} {
+      // Anyone signed in who knows the room code can read the session doc.
+      allow read: if isAuthed();
+
+      // Creating a session pins the caller as facilitator.
+      allow create: if isAuthed()
+                    && request.resource.data.facilitatorUid == request.auth.uid;
+
+      // Only the facilitator may update or delete the session doc
+      // (schedule, settings, allHands, timeLogs, status, etc.).
+      allow update, delete: if isAuthed()
+                            && resource.data.facilitatorUid == request.auth.uid;
+
+      function isFacilitator() {
+        return isAuthed()
+               && get(/databases/$(database)/documents/sessions/$(roomCode))
+                  .data.facilitatorUid == request.auth.uid;
+      }
+
+      match /members/{memberId} {
+        allow read: if isAuthed();
+
+        // Facilitator fully manages the roster.
+        allow create, delete: if isFacilitator();
+
+        // Members may only self-claim (set claimedByUid to their own uid,
+        // and only if the slot is unclaimed or already theirs). Facilitator
+        // may update any field.
+        allow update: if isFacilitator()
+                       || (
+                         isAuthed()
+                         && request.resource.data.diff(resource.data)
+                              .affectedKeys().hasOnly(['claimedByUid'])
+                         && (
+                              resource.data.get('claimedByUid', null) == null
+                              || resource.data.claimedByUid == request.auth.uid
+                            )
+                         && request.resource.data.claimedByUid == request.auth.uid
+                       );
+      }
+
+      match /wishlists/{memberId} {
+        allow read: if isAuthed();
+
+        // Facilitator may write anyone's wishlist. Otherwise, only the device
+        // that has claimed this member (matching claimedByUid) may write.
+        allow write: if isFacilitator()
+                     || (
+                       isAuthed()
+                       && get(/databases/$(database)/documents/sessions/$(roomCode)/members/$(memberId))
+                            .data.get('claimedByUid', null) == request.auth.uid
+                     );
+      }
+    }
+  }
+}

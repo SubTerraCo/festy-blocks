@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import AppNav from './components/AppNav'
 import TeamSetup from './components/TeamSetup'
 import WishlistHub from './components/WishlistHub'
@@ -8,165 +8,137 @@ import DraftBoard from './components/DraftBoard'
 import ScheduleView from './components/ScheduleView'
 import TimeClock from './components/TimeClock'
 import SettingsPage from './components/SettingsPage'
+import Lobby from './components/Lobby'
+import { useSession } from './context/SessionProvider'
 import { mergeSettings } from './data/settings'
 
 function App() {
-  const [appState, setAppState] = useState('setup');
-  
-  const [team, setTeam] = useState(() => {
-    const saved = localStorage.getItem('festival-team');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const {
+    mode,
+    role,
+    isPublished,
+    currentMemberId,
+    session,
+    team,
+    setTeam,
+    wishlists,
+    setWishlists,
+    schedule,
+    setSchedule,
+    allHands,
+    setAllHands,
+    timeLogs,
+    setTimeLogs,
+    settings,
+    setSettings,
+    publishSchedule,
+    leaveMode,
+  } = useSession()
 
-  const [wishlists, setWishlists] = useState(() => {
-    const saved = localStorage.getItem('festival-wishlists');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migrate old format (grouped by day) to new format (global array per member)
-      if (parsed.friday && !Array.isArray(parsed.friday)) {
-        const migrated = {};
-        const memberIds = new Set([
-          ...Object.keys(parsed.friday || {}),
-          ...Object.keys(parsed.saturday || {}),
-          ...Object.keys(parsed.sunday || {})
-        ]);
-        
-        memberIds.forEach(mId => {
-          migrated[mId] = [
-            ...(parsed.friday?.[mId] || []).map(s => `friday|${s}`),
-            ...(parsed.saturday?.[mId] || []).map(s => `saturday|${s}`),
-            ...(parsed.sunday?.[mId] || []).map(s => `sunday|${s}`)
-          ];
-        });
-        return migrated;
-      }
-      return parsed;
+  const memberMode = mode === 'session' && role === 'member'
+  const facilitatorMode = mode === 'session' && role === 'facilitator'
+
+  // Members land directly on wishlist for themselves. Solo/facilitator go to setup.
+  const defaultAppState = memberMode
+    ? isPublished
+      ? 'schedule'
+      : 'wishlist_picker'
+    : 'setup'
+
+  const [appState, setAppState] = useState(defaultAppState)
+  const [scheduleMode, setScheduleMode] = useState('master')
+  const [currentPickerId, setCurrentPickerId] = useState(
+    memberMode ? currentMemberId : null
+  )
+  const [prevAppState, setPrevAppState] = useState(defaultAppState)
+
+  // Keep member's active picker in sync with claim
+  useEffect(() => {
+    if (memberMode) {
+      setCurrentPickerId(currentMemberId)
+      // When facilitator publishes, force members to the schedule view
+      if (isPublished) setAppState('schedule')
+      else if (appState !== 'wishlist_picker') setAppState('wishlist_picker')
     }
-    return {};
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberMode, currentMemberId, isPublished])
 
-  const [schedule, setSchedule] = useState(() => {
-    const saved = localStorage.getItem('festival-schedule');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.friday) return parsed;
-    }
-    return { friday: {}, saturday: {}, sunday: {} };
-  });
-
-  const [allHands, setAllHands] = useState(() => {
-    const saved = localStorage.getItem('festival-allhands');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.friday) return parsed;
-    }
-    return { friday: [], saturday: [], sunday: [] };
-  });
-
-  const [timeLogs, setTimeLogs] = useState(() => {
-    const saved = localStorage.getItem('festival-timelogs');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('festival-settings');
-    if (saved) {
-      try {
-        return mergeSettings(JSON.parse(saved));
-      } catch {
-        return mergeSettings(null);
-      }
-    }
-    return mergeSettings(null);
-  });
-
-  const [scheduleMode, setScheduleMode] = useState('master');
-  const [currentPickerId, setCurrentPickerId] = useState(null);
-  const [prevAppState, setPrevAppState] = useState('setup');
+  // Theme apply
+  useEffect(() => {
+    const theme = settings.theme === 'light' ? 'light' : 'dark'
+    const root = document.documentElement
+    root.classList.toggle('dark', theme === 'dark')
+    root.dataset.theme = theme
+  }, [settings.theme])
 
   const goToScheduleSwaps = () => {
-    setScheduleMode('swaps');
-    setAppState('schedule');
-  };
-
-  useEffect(() => {
-    localStorage.setItem('festival-team', JSON.stringify(team));
-  }, [team]);
-
-  useEffect(() => {
-    localStorage.setItem('festival-wishlists', JSON.stringify(wishlists));
-  }, [wishlists]);
-
-  useEffect(() => {
-    localStorage.setItem('festival-schedule', JSON.stringify(schedule));
-  }, [schedule]);
-
-  useEffect(() => {
-    localStorage.setItem('festival-allhands', JSON.stringify(allHands));
-  }, [allHands]);
-
-  useEffect(() => {
-    localStorage.setItem('festival-timelogs', JSON.stringify(timeLogs));
-  }, [timeLogs]);
-
-  useEffect(() => {
-    localStorage.setItem('festival-settings', JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    const theme = settings.theme === 'light' ? 'light' : 'dark';
-    const root = document.documentElement;
-    root.classList.toggle('dark', theme === 'dark');
-    root.dataset.theme = theme;
-  }, [settings.theme]);
+    setScheduleMode('swaps')
+    setAppState('schedule')
+  }
 
   const goToSettings = () => {
-    setPrevAppState(appState === 'settings' ? prevAppState : appState);
-    setAppState('settings');
-  };
+    setPrevAppState(appState === 'settings' ? prevAppState : appState)
+    setAppState('settings')
+  }
 
   const handleNav = (navId) => {
     switch (navId) {
       case 'setup':
-        setAppState('setup');
-        break;
+        setAppState('setup')
+        break
       case 'wishlist':
         if (currentPickerId) {
-          setAppState('wishlist_picker');
+          setAppState('wishlist_picker')
         } else {
-          setAppState('wishlist_hub');
+          setAppState('wishlist_hub')
         }
-        break;
+        break
       case 'draft':
-        setAppState('draft');
-        break;
+        setAppState('draft')
+        break
       case 'schedule':
-        setScheduleMode('master');
-        setAppState('schedule');
-        break;
+        setScheduleMode('master')
+        setAppState('schedule')
+        break
       case 'timeclock':
-        setAppState('timeclock');
-        break;
+        setAppState('timeclock')
+        break
       case 'settings':
-        goToSettings();
-        break;
+        goToSettings()
+        break
+      case 'lobby':
+        leaveMode()
+        break
       default:
-        break;
+        break
     }
-  };
+  }
+
+  // Show the lobby when there's no active mode, or when a member has joined but
+  // hasn't claimed their identity yet.
+  if (mode === 'none' || (mode === 'session' && role === 'viewer')) {
+    return <Lobby />
+  }
 
   return (
     <div className="app-shell min-h-screen">
-      <AppNav appState={appState} onNavigate={handleNav} />
+      <AppNav
+        appState={appState}
+        onNavigate={handleNav}
+        role={role}
+        mode={mode}
+        sessionCode={session?.code || null}
+        published={isPublished}
+      />
 
       <main className="app-main container mx-auto px-3 sm:px-4">
         {appState === 'setup' && (
-          <TeamSetup 
-            team={team} 
+          <TeamSetup
+            team={team}
             setTeam={setTeam}
             settings={settings}
             setSettings={setSettings}
-            onComplete={() => setAppState('wishlist_hub')} 
+            onComplete={() => setAppState('wishlist_hub')}
           />
         )}
 
@@ -179,21 +151,23 @@ function App() {
             setWishlists={setWishlists}
           />
         )}
-        
+
         {appState === 'wishlist_hub' && (
-          <WishlistHub 
+          <WishlistHub
             team={team}
             wishlists={wishlists}
             schedule={schedule}
             settings={settings}
             onPickFor={(memberId) => {
-              setCurrentPickerId(memberId);
-              setAppState('wishlist_picker');
+              setCurrentPickerId(memberId)
+              setAppState('wishlist_picker')
             }}
             onResolve={() => setAppState('resolve')}
             onBack={() => setAppState('setup')}
             onOpenSettings={goToSettings}
             onGoToSwaps={goToScheduleSwaps}
+            role={role}
+            currentMemberId={currentMemberId}
           />
         )}
 
@@ -205,26 +179,32 @@ function App() {
             setWishlists={setWishlists}
             settings={settings}
             onSave={() => {
-              setCurrentPickerId(null);
-              setAppState('wishlist_hub');
+              if (memberMode) {
+                // members stay on their own picker
+                return
+              }
+              setCurrentPickerId(null)
+              setAppState('wishlist_hub')
             }}
           />
         )}
 
         {appState === 'wishlist_picker' && !currentPickerId && (
-          <WishlistHub 
+          <WishlistHub
             team={team}
             wishlists={wishlists}
             schedule={schedule}
             settings={settings}
             onPickFor={(memberId) => {
-              setCurrentPickerId(memberId);
-              setAppState('wishlist_picker');
+              setCurrentPickerId(memberId)
+              setAppState('wishlist_picker')
             }}
             onResolve={() => setAppState('resolve')}
             onBack={() => setAppState('setup')}
             onOpenSettings={goToSettings}
             onGoToSwaps={goToScheduleSwaps}
+            role={role}
+            currentMemberId={currentMemberId}
           />
         )}
 
@@ -241,15 +221,15 @@ function App() {
         )}
 
         {appState === 'draft' && (
-          <DraftBoard 
+          <DraftBoard
             team={team}
             wishlists={wishlists}
             schedule={schedule}
             setSchedule={setSchedule}
             settings={settings}
             onComplete={() => {
-              setScheduleMode('master');
-              setAppState('schedule');
+              setScheduleMode('master')
+              setAppState('schedule')
             }}
             onBack={() => setAppState('resolve')}
             onOpenSettings={goToSettings}
@@ -258,7 +238,7 @@ function App() {
         )}
 
         {appState === 'schedule' && (
-          <ScheduleView 
+          <ScheduleView
             team={team}
             wishlists={wishlists}
             schedule={schedule}
@@ -268,15 +248,15 @@ function App() {
             settings={settings}
             initialMode={scheduleMode}
             onBack={() => setAppState('draft')}
+            role={role}
+            currentMemberId={currentMemberId}
+            isPublished={isPublished}
+            onPublish={facilitatorMode ? publishSchedule : null}
           />
         )}
 
         {appState === 'timeclock' && (
-          <TimeClock 
-            team={team}
-            timeLogs={timeLogs}
-            setTimeLogs={setTimeLogs}
-          />
+          <TimeClock team={team} timeLogs={timeLogs} setTimeLogs={setTimeLogs} />
         )}
       </main>
     </div>
