@@ -63,7 +63,7 @@ export default function AppNav({
           </div>
           <p className="text-blue-100 text-xs hidden sm:block">
             Shift wishlist · conflict draft · schedule{' '}
-            <span className="opacity-75">(v26.09.14b6)</span>
+            <span className="opacity-75">(v26.09.14b7)</span>
           </p>
         </div>
 

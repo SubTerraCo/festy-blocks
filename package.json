@@ -1,7 +1,7 @@
 {
   "name": "festy-blocks",
   "private": true,
-  "version": "2026.09.14-b6",
+  "version": "2026.09.14-b7",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -3,7 +3,7 @@ import SettingsForm from './SettingsForm';
 import CoverageDashboard from './CoverageDashboard';
 import { PageShell, PageCard, InfoBanner } from './AppNav';
 import { ui } from '../ui';
-import { mergeSettings, getShiftsPerDay, formatDecimalHour } from '../data/settings';
+import { mergeSettings, getShiftsPerDay, formatDecimalHour, getMinCoverage } from '../data/settings';
 import { generatePin, hashPin } from '../data/firebase';
 
 export default function TeamSetup({
@@ -74,6 +74,9 @@ export default function TeamSetup({
   };
 
   const shifts = getShiftsPerDay(settings);
+  const minCoverage = getMinCoverage(settings);
+  const membersNeeded = Math.max(0, minCoverage - team.length);
+  const canContinueTeam = team.length >= minCoverage;
   const canContinueSchedule = shifts > 0;
 
   if (step === 'schedule') {
@@ -209,11 +212,15 @@ export default function TeamSetup({
           </ul>
         )}
 
-        <button type="button" onClick={onComplete} disabled={team.length < 3} className={`w-full ${ui.btnSuccess}`}>
+        <button type="button" onClick={onComplete} disabled={!canContinueTeam} className={`w-full ${ui.btnSuccess}`}>
           Continue to Wishlists
         </button>
-        {team.length < 3 && (
-          <p className="text-sm text-red-500 mt-2 text-center">Add at least 3 members to start.</p>
+        {!canContinueTeam && (
+          <p className="text-sm text-red-500 dark:text-red-400 mt-2 text-center">
+            {membersNeeded === minCoverage
+              ? `Add at least ${minCoverage} member${minCoverage === 1 ? '' : 's'} to meet min coverage.`
+              : `Add ${membersNeeded} more member${membersNeeded === 1 ? '' : 's'} to meet min coverage of ${minCoverage} (currently ${team.length}).`}
+          </p>
         )}
       </PageCard>
     </PageShell>
