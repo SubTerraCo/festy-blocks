@@ -232,7 +232,7 @@ export default function ScheduleView({
       <PageCard>
         {!readOnly && (
           <div className="flex justify-center mb-5 print:hidden">
-            <div className="bg-slate-200 p-1 rounded-lg flex flex-wrap gap-1">
+            <div className="bg-slate-200 dark:bg-slate-700 p-1 rounded-lg flex flex-wrap gap-1">
               {[
                 { id: 'master', label: 'Master' },
                 { id: 'manual', label: 'Manual Edit' },
@@ -244,7 +244,9 @@ export default function ScheduleView({
                   type="button"
                   onClick={() => setViewMode(mode.id)}
                   className={`px-4 py-2 rounded-md font-bold text-sm transition ${
-                    viewMode === mode.id ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:bg-slate-300'
+                    viewMode === mode.id
+                      ? 'bg-white dark:bg-slate-900 shadow-sm text-blue-600 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
                   }`}
                 >
                   {mode.label}
@@ -261,7 +263,7 @@ export default function ScheduleView({
               type="button"
               onClick={() => setSelectedDay(day)}
               className={`flex-1 py-2 rounded-lg font-bold capitalize transition ${
-                selectedDay === day ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                selectedDay === day ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {day}

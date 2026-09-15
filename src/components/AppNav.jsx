@@ -33,7 +33,8 @@ export default function AppNav({
     if (item.memberRequiresPublished && role === 'member' && !published) return false;
     return true;
   });
-  const showLeave = mode === 'session';
+  const showHome = mode === 'solo' || mode === 'session';
+  const homeLabel = mode === 'session' ? 'Leave' : 'Home';
 
   return (
     <header className="app-nav bg-blue-600 text-white shadow-md print:hidden">
@@ -62,7 +63,7 @@ export default function AppNav({
           </div>
           <p className="text-blue-100 text-xs hidden sm:block">
             Shift wishlist · conflict draft · schedule{' '}
-            <span className="opacity-75">(v26.09.14b5)</span>
+            <span className="opacity-75">(v26.09.14b6)</span>
           </p>
         </div>
 
@@ -84,14 +85,14 @@ export default function AppNav({
               </button>
             );
           })}
-          {showLeave && (
+          {showHome && (
             <button
               type="button"
               onClick={() => onNavigate('lobby')}
               className="px-3 py-1.5 rounded-lg text-sm font-semibold transition bg-blue-800/50 text-white hover:bg-blue-900/60"
-              title="Leave this session"
+              title={mode === 'session' ? 'Leave this session and return to the start screen' : 'Return to the start screen'}
             >
-              Leave
+              {homeLabel}
             </button>
           )}
         </nav>
@@ -151,7 +152,7 @@ export function DayJumpBar({ days, onJump, lockedDays = {}, accent = 'blue' }) {
             type="button"
             onClick={() => onJump(day)}
             className={`${ui.jumpBtn} ${
-              locked ? 'bg-slate-200 text-slate-500' : accent === 'orange' ? 'hover:bg-orange-100 hover:text-orange-700' : ''
+              locked ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400' : accent === 'orange' ? 'hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:text-orange-700 dark:hover:text-orange-300' : ''
             }`}
           >
             Jump to {day}

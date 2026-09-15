@@ -33,6 +33,7 @@ function App() {
     setSettings,
     publishSchedule,
     leaveMode,
+    resetSoloData,
   } = useSession()
 
   const memberMode = mode === 'session' && role === 'member'
@@ -62,14 +63,6 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memberMode, currentMemberId, isPublished])
-
-  // Theme apply
-  useEffect(() => {
-    const theme = settings.theme === 'light' ? 'light' : 'dark'
-    const root = document.documentElement
-    root.classList.toggle('dark', theme === 'dark')
-    root.dataset.theme = theme
-  }, [settings.theme])
 
   const goToScheduleSwaps = () => {
     setScheduleMode('swaps')
@@ -106,9 +99,16 @@ function App() {
       case 'settings':
         goToSettings()
         break
-      case 'lobby':
-        leaveMode()
+      case 'lobby': {
+        const leavingSession = mode === 'session'
+        const ok = confirm(
+          leavingSession
+            ? 'Leave this session and return to the start screen? You can rejoin with the room code.'
+            : 'Return to the start screen? Your solo data stays on this device until you clear it in Settings.'
+        )
+        if (ok) leaveMode()
         break
+      }
       default:
         break
     }
@@ -151,6 +151,9 @@ function App() {
             team={team}
             onBack={() => setAppState(prevAppState === 'settings' ? 'setup' : prevAppState)}
             setWishlists={setWishlists}
+            onLeaveToStart={leaveMode}
+            onClearLocalData={mode === 'solo' ? resetSoloData : null}
+            mode={mode}
           />
         )}
 

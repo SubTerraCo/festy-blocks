@@ -134,7 +134,7 @@ export default function ConflictResolver({ team, wishlists, setSchedule, onCompl
   if (isResolving) {
     return (
       <PageShell narrow title="Auto-resolving…">
-        <PageCard><p className="text-center text-lg font-semibold text-slate-600 py-10">Working on your schedule…</p></PageCard>
+        <PageCard><p className="text-center text-lg font-semibold text-slate-600 dark:text-slate-300 py-10">Working on your schedule…</p></PageCard>
       </PageShell>
     );
   }
@@ -162,22 +162,22 @@ export default function ConflictResolver({ team, wishlists, setSchedule, onCompl
         <div className="flex justify-center gap-3 mb-6 flex-wrap">
           <div className="bg-green-50 border border-green-200 p-4 rounded-lg min-w-[100px] text-center">
             <p className="text-3xl font-bold text-green-600">{results.granted}</p>
-            <p className="text-slate-600 text-xs font-medium mt-1">Granted</p>
+            <p className="text-slate-600 dark:text-slate-400 text-xs font-medium mt-1">Granted</p>
           </div>
           <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg min-w-[100px] text-center">
             <p className="text-3xl font-bold text-orange-600">{results.conflicts}</p>
-            <p className="text-slate-600 text-xs font-medium mt-1">Conflicts</p>
+            <p className="text-slate-600 dark:text-slate-400 text-xs font-medium mt-1">Conflicts</p>
           </div>
           {results.nudged > 0 && (
             <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg min-w-[100px] text-center">
               <p className="text-3xl font-bold text-purple-600">{results.nudged}</p>
-              <p className="text-slate-600 text-xs font-medium mt-1">Nudged</p>
+              <p className="text-slate-600 dark:text-slate-400 text-xs font-medium mt-1">Nudged</p>
             </div>
           )}
         </div>
 
         <div className={`${ui.infoBox} ${ui.infoGray} text-left mb-6`}>
-          <p className="font-bold text-slate-800 mb-2">Hours off vs exact target</p>
+          <p className="font-bold text-slate-800 dark:text-slate-100 mb-2">Hours off vs exact target</p>
           {results.balance.map(b => (
             <div key={b.id} className="mb-2 last:mb-0 text-sm">
               <span className="font-semibold">{b.name}:</span>{' '}
@@ -194,7 +194,7 @@ export default function ConflictResolver({ team, wishlists, setSchedule, onCompl
           ))}
         </div>
 
-        <p className="text-slate-600 mb-6 text-center">
+        <p className="text-slate-600 dark:text-slate-300 mb-6 text-center">
           {needsDraft
             ? 'Next: bidirectional draft to finish exact targets and swaps.'
             : 'Everyone is at their exact target. You can still open draft to swap.'}

@@ -88,7 +88,7 @@ export default function Lobby() {
             <h1 className="text-lg sm:text-xl font-bold tracking-tight">Festy Blocks</h1>
             <p className="text-blue-100 text-xs hidden sm:block">
               Shift wishlist · conflict draft · schedule{' '}
-              <span className="opacity-75">(v26.09.14b5)</span>
+              <span className="opacity-75">(v26.09.14b6)</span>
             </p>
           </div>
           <div className="text-xs text-blue-100">

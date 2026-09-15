@@ -71,7 +71,7 @@ export default function SettingsForm({
         <section>
           <h3 className="text-lg font-bold mb-1 text-slate-900 dark:text-slate-100">Appearance</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-            Global dark / light mode for the whole app. Default is dark.
+            Global dark / light mode. Choosing a theme applies immediately across every page.
           </p>
           <div className="grid grid-cols-2 gap-3">
             {[

@@ -237,11 +237,11 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
         <div className="p-4 flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <p className="text-sm text-slate-500 font-medium">Round {round} · Bidirectional Draft</p>
-              <h2 className="text-xl font-bold text-slate-800">
-                <span className="text-blue-600">{currentPicker.name}'s</span> Turn
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Round {round} · Bidirectional Draft</p>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                <span className="text-blue-600 dark:text-blue-400">{currentPicker.name}'s</span> Turn
               </h2>
-              <p className="text-sm text-slate-600 capitalize mt-1">
+              <p className="text-sm text-slate-600 dark:text-slate-300 capitalize mt-1">
                 {currentPicker.role} · target {hoursOn}h on / <strong>exactly {targetOff}h off</strong> per day
               </p>
             </div>
@@ -378,7 +378,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                 </p>
               </div>
 
-              <div className={`rounded-b-xl shadow-md p-6 ${status.complete ? 'bg-gray-100' : 'bg-white'}`}>
+              <div className={`rounded-b-xl shadow-md p-6 ${status.complete ? 'bg-slate-100 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>
                 <div className={`flex flex-col gap-4 ${status.complete ? 'opacity-70' : ''}`}>
                   {timeSlots.map((slot) => {
                     const peopleOffIds = schedule[day][slot.id] || [];
@@ -408,14 +408,14 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                     return (
                       <div key={slot.id} className="flex flex-col md:flex-row gap-4 border-b pb-4 last:border-0">
                         <div className="md:w-1/2">
-                          <h4 className="text-lg font-bold text-gray-800">{slot.label}</h4>
+                          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">{slot.label}</h4>
                           <div className="mt-2 space-y-2">
                             {artistsPlaying.length > 0 ? (
                               artistsPlaying.map((artist, idx) => (
-                                <div key={idx} className="flex items-start gap-2 bg-purple-50 p-2 rounded">
+                                <div key={idx} className="flex items-start gap-2 bg-purple-50 dark:bg-purple-950/40 p-2 rounded">
                                   <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5"></div>
                                   <div>
-                                    <p className="font-semibold text-purple-900 leading-tight">
+                                    <p className="font-semibold text-purple-900 dark:text-purple-200 leading-tight">
                                       {artist.name}
                                       <span className="text-xs font-normal text-purple-600 block sm:inline sm:ml-1">
                                         ({formatTime(artist.start)} - {formatTime(artist.end)})
@@ -426,7 +426,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                                 </div>
                               ))
                             ) : (
-                              <p className="text-sm text-gray-400 italic">No major sets listed</p>
+                              <p className="text-sm text-slate-400 italic">No major sets listed</p>
                             )}
                           </div>
                         </div>
@@ -437,15 +437,15 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                             className={`border-2 rounded-lg p-4 transition ${
                               canPick
                                 ? status.needsOff
-                                  ? 'bg-blue-50 border-blue-400 cursor-pointer hover:bg-blue-100'
-                                  : 'bg-green-50 border-green-400 cursor-pointer hover:bg-green-100'
+                                  ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-400 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                                  : 'bg-green-50 dark:bg-green-950/30 border-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30'
                                 : isPickerOff
-                                  ? 'bg-gray-100 border-gray-300'
-                                  : 'bg-green-50/50 border-green-200'
+                                  ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600'
+                                  : 'bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
                             }`}
                           >
                             <div className="flex justify-between items-center mb-2">
-                              <span className="font-semibold text-gray-700">
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">
                                 {isPickerOff ? 'You are OFF' : 'You are WORKING'}
                                 {actionHint ? ` — ${actionHint}` : ''}
                               </span>
@@ -454,13 +454,13 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                               </span>
                             </div>
                             <div className="text-sm flex justify-between items-center mb-2">
-                              <span className="text-gray-500">{peopleOff.length} people off</span>
+                              <span className="text-slate-500 dark:text-slate-400">{peopleOff.length} people off</span>
                               <span className={peopleWorking < minCoverage ? 'text-red-600 font-bold' : 'text-blue-600 font-medium'}>
                                 {peopleWorking} working
                               </span>
                             </div>
                             {peopleOff.length > 0 ? (
-                              <div className="text-xs text-orange-700 bg-orange-50 p-2 rounded">
+                              <div className="text-xs text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 p-2 rounded">
                                 <span className="font-semibold">Who has this block off: </span>
                                 {peopleOff.map(m => {
                                   const picks = wishlists?.[m.id] || [];
@@ -470,7 +470,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                                 }).join(', ')}
                               </div>
                             ) : (
-                              <div className="text-xs text-gray-400 italic">Nobody off this block</div>
+                              <div className="text-xs text-slate-400 italic">Nobody off this block</div>
                             )}
                           </div>
 
@@ -510,11 +510,11 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
 
       {pendingPick && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
               Confirm {pendingPick.mode === 'off' ? 'Time Off' : 'Work'} Pick?
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-slate-600 dark:text-slate-300 mb-4">
               <strong>{currentPicker.name}</strong> will{' '}
               <strong>{pendingPick.mode === 'off' ? 'take OFF' : 'WORK'}</strong>{' '}
               <span className="capitalize">{pendingPick.day}</span> — {getSlotLabel(pendingPick.slotId)}.
@@ -523,7 +523,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
             <div className="flex gap-3">
               <button
                 onClick={() => setPendingPick(null)}
-                className="flex-1 py-3 rounded-md font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                className="flex-1 py-3 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
               >
                 Go Back
               </button>
@@ -542,9 +542,9 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
 
       {swapFlow?.step === 'pick-partner' && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Request Swap</h3>
-            <p className="text-gray-600 mb-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Request Swap</h3>
+            <p className="text-slate-600 dark:text-slate-300 mb-4">
               Who has <strong className="capitalize">{swapFlow.day}</strong> — {getSlotLabel(swapFlow.slotId)} off?
             </p>
             <div className="space-y-2 mb-4">
@@ -561,14 +561,14 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
                     className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:bg-indigo-50 hover:border-indigo-300 font-semibold transition"
                   >
                     {m.name} {priority > 0 ? <span className="text-indigo-600 font-bold ml-1">(Priority #{priority})</span> : ''}
-                    <span className="block text-xs text-gray-500 font-normal capitalize">{m.role}</span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400 font-normal capitalize">{m.role}</span>
                   </button>
                   );
                 })}
             </div>
             <button
               onClick={() => setSwapFlow(null)}
-              className="w-full py-3 rounded-md font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+              className="w-full py-3 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
             >
               Cancel
             </button>
@@ -578,12 +578,12 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
 
       {swapFlow?.step === 'requester-confirm' && partner && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
             <p className="text-xs font-bold uppercase text-indigo-600 mb-1">Confirmation 1 of 2 — Requester</p>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
               {currentPicker.name}, confirm this swap?
             </h3>
-            <div className="bg-indigo-50 rounded-lg p-4 mb-4 text-sm text-gray-700 space-y-2">
+            <div className="bg-indigo-50 dark:bg-indigo-950/40 rounded-lg p-4 mb-4 text-sm text-slate-700 dark:text-slate-200 space-y-2">
               <p>
                 <strong>Block:</strong>{' '}
                 <span className="capitalize">{swapFlow.day}</span> — {getSlotLabel(swapFlow.slotId)}
@@ -604,7 +604,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
             <div className="flex gap-3">
               <button
                 onClick={() => setSwapFlow(null)}
-                className="flex-1 py-3 rounded-md font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                className="flex-1 py-3 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
               >
                 Go Back
               </button>
@@ -621,12 +621,12 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
 
       {swapFlow?.step === 'swapee-confirm' && partner && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
             <p className="text-xs font-bold uppercase text-green-600 mb-1">Confirmation 2 of 2 — Swapee</p>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
               {partner.name}, do you accept this swap?
             </h3>
-            <div className="bg-green-50 rounded-lg p-4 mb-4 text-sm text-gray-700 space-y-2">
+            <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 mb-4 text-sm text-slate-700 dark:text-slate-200 space-y-2">
               <p>
                 <strong>{currentPicker.name}</strong> wants to swap{' '}
                 <span className="capitalize">{swapFlow.day}</span> — {getSlotLabel(swapFlow.slotId)}
@@ -641,7 +641,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
             <div className="flex gap-3">
               <button
                 onClick={() => setSwapFlow(null)}
-                className="flex-1 py-3 rounded-md font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                className="flex-1 py-3 rounded-md font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
               >
                 Decline
               </button>

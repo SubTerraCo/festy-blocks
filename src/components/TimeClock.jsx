@@ -122,7 +122,7 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
             className={`flex-1 py-2 rounded-lg font-bold capitalize transition ${
               selectedDay === day
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
             {day}
@@ -139,8 +139,8 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
             <PageCard key={member.id} className="page-break-inside-avoid">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-800">{member.name}</h3>
-                  <p className="text-sm text-slate-500 capitalize">{member.role}</p>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{member.name}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 capitalize">{member.role}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-slate-500">Total Hours</p>
@@ -170,13 +170,13 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
                     Currently Clocked In
                   </div>
                 ) : (
-                  <div className="bg-slate-200 text-slate-600 p-2 rounded-lg text-center text-sm font-bold">
+                  <div className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 p-2 rounded-lg text-center text-sm font-bold">
                     Clocked Out
                   </div>
                 )}
               </div>
 
-              <h4 className="text-sm font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">Punch History</h4>
+              <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-1 mb-2">Punch History</h4>
               {logs.length === 0 ? (
                 <p className="text-sm text-slate-400 italic text-center py-2">No punches today</p>
               ) : (
@@ -185,15 +185,15 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
                     const isEditing = editingLog?.memberId === member.id && editingLog?.logIndex === index;
                     if (isEditing) {
                       return (
-                        <div key={index} className="bg-white border border-blue-300 p-3 rounded-lg shadow-sm print:hidden">
+                        <div key={index} className="bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-800 p-3 rounded-lg shadow-sm print:hidden">
                           <div className="flex flex-col gap-2 mb-2">
                             <div>
                               <label className="text-xs text-slate-500">In</label>
-                              <input type="datetime-local" value={editIn} onChange={e => setEditIn(e.target.value)} className="w-full border rounded p-1 text-sm" />
+                              <input type="datetime-local" value={editIn} onChange={e => setEditIn(e.target.value)} className="w-full border border-slate-300 dark:border-slate-600 rounded p-1 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100" />
                             </div>
                             <div>
                               <label className="text-xs text-slate-500">Out</label>
-                              <input type="datetime-local" value={editOut} onChange={e => setEditOut(e.target.value)} className="w-full border rounded p-1 text-sm" />
+                              <input type="datetime-local" value={editOut} onChange={e => setEditOut(e.target.value)} className="w-full border border-slate-300 dark:border-slate-600 rounded p-1 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100" />
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -204,7 +204,7 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
                       );
                     }
                     return (
-                      <div key={index} className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-200 text-sm group">
+                      <div key={index} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm group">
                         <div>
                           <span className="text-green-700 font-semibold">{formatTime(log.in)}</span>
                           <span className="text-slate-400 mx-1">→</span>

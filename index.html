@@ -12,9 +12,15 @@
     <title>Festy Blocks</title>
     <script>
       try {
-        var s = JSON.parse(localStorage.getItem('festival-settings') || '{}');
-        var theme = s.theme === 'light' ? 'light' : 'dark';
+        var theme = localStorage.getItem('festy-theme');
+        if (theme !== 'light' && theme !== 'dark') {
+          var s = JSON.parse(localStorage.getItem('festival-settings') || '{}');
+          theme = s.theme === 'light' ? 'light' : 'dark';
+        }
         document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.style.colorScheme = theme;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#111827' : '#e2e8f0');
       } catch (e) {}
     </script>
   </head>

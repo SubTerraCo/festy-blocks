@@ -24,6 +24,7 @@ import {
   hashPin,
 } from '../data/firebase';
 import { mergeSettings } from '../data/settings';
+import { applyTheme } from '../data/theme';
 
 const SessionContext = createContext(null);
 
@@ -233,6 +234,11 @@ export function SessionProvider({ children }) {
     mode === 'session' ? mergeSettings(sessionDoc?.settings || null) : soloSettings;
   const isPublished = mode === 'session' && sessionDoc?.status === 'published';
 
+  useEffect(() => {
+    if (mode === 'session' && !sessionDoc) return;
+    applyTheme(settings.theme);
+  }, [mode, sessionDoc, settings.theme]);
+
   // ---------- setters (write-through in session mode) ----------
   const writeSessionField = useCallback(
     async (patch) => {
@@ -356,14 +362,18 @@ export function SessionProvider({ children }) {
       if (mode !== 'session') {
         setSoloSettings((prev) => {
           const next = typeof updater === 'function' ? updater(prev) : updater;
-          return mergeSettings(next);
+          const merged = mergeSettings(next);
+          applyTheme(merged.theme);
+          return merged;
         });
         return;
       }
       if (!isFacilitator) return;
       const current = mergeSettings(sessionDoc?.settings || null);
-      const next = typeof updater === 'function' ? updater(current) : updater;
-      writeSessionField({ settings: mergeSettings(next) });
+      const next = mergeSettings(typeof updater === 'function' ? updater(current) : updater);
+      applyTheme(next.theme);
+      setSessionDoc((prev) => (prev ? { ...prev, settings: next } : prev));
+      writeSessionField({ settings: next });
     },
     [mode, isFacilitator, sessionDoc, writeSessionField]
   );
@@ -385,6 +395,30 @@ export function SessionProvider({ children }) {
     setClaimedMemberId(null);
     setError(null);
   }, []);
+
+  const resetSoloData = useCallback(() => {
+    const theme = soloSettings.theme;
+    setSoloTeam([]);
+    setSoloWishlists({});
+    setSoloSchedule(EMPTY_SCHEDULE);
+    setSoloAllHands(EMPTY_ALLHANDS);
+    setSoloTimeLogs({});
+    setSoloSettings(mergeSettings({ theme }));
+    localStorage.removeItem(LS.team);
+    localStorage.removeItem(LS.wishlists);
+    localStorage.removeItem(LS.schedule);
+    localStorage.removeItem(LS.allHands);
+    localStorage.removeItem(LS.timeLogs);
+    localStorage.removeItem(LS.mode);
+    localStorage.removeItem(LS.sessionCode);
+    setMode('none');
+    setSessionCode(null);
+    setSessionDoc(null);
+    setSessionMembers([]);
+    setSessionWishlists({});
+    setClaimedMemberId(null);
+    setError(null);
+  }, [soloSettings.theme]);
 
   const createSession = useCallback(async ({ facilitatorPin } = {}) => {
     if (!firebaseEnabled) {
@@ -520,6 +554,7 @@ export function SessionProvider({ children }) {
     // lifecycle
     enterSolo,
     leaveMode,
+    resetSoloData,
     createSession,
     joinSession,
     claimMember,
