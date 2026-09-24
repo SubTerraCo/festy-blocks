@@ -4,19 +4,28 @@ import {
   clampHoursOn,
 } from '../data/settings';
 import { ui } from '../ui';
+import type { Settings, TeamMember } from '../types';
 
 /**
  * Live coverage / hours calculator for Setup + Settings.
  * More volunteers or higher volunteer hours → fewer hours ON for regulars.
  */
-export default function CoverageDashboard({ team = [], settings, onChange }) {
+export default function CoverageDashboard({
+  team = [],
+  settings,
+  onChange,
+}: {
+  team?: TeamMember[];
+  settings: Settings;
+  onChange: (next: Settings) => void;
+}) {
   const draft = mergeSettings(settings);
   const plan = computeCoveragePlan(team, draft);
   const maxOn = Math.max(0, plan.slots);
 
-  const patch = (partial) => onChange(mergeSettings({ ...draft, ...partial }));
+  const patch = (partial: Partial<Settings>) => onChange(mergeSettings({ ...draft, ...partial }));
 
-  const setHoursOn = (role, value) => {
+  const setHoursOn = (role: string, value: string | number) => {
     patch({
       hoursOnByRole: {
         ...draft.hoursOnByRole,
@@ -40,7 +49,7 @@ export default function CoverageDashboard({ team = [], settings, onChange }) {
     });
   };
 
-  const fmtExact = (n) =>
+  const fmtExact = (n: number | null) =>
     n == null || Number.isNaN(n) ? '—' : (Math.round(n * 10) / 10).toString();
 
   return (
@@ -204,7 +213,7 @@ export default function CoverageDashboard({ team = [], settings, onChange }) {
   );
 }
 
-function Stat({ label, value, hint }) {
+function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">

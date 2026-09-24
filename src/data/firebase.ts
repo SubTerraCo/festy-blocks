@@ -1,10 +1,11 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
+  type Firestore,
 } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged, type Auth } from 'firebase/auth';
 
 /**
  * Firebase config is read from Vite env vars (VITE_FIREBASE_*).
@@ -25,13 +26,13 @@ const firebaseConfig = {
 /** True only when the app was built with real Firebase creds. */
 export const firebaseEnabled = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
-let _app = null;
-let _db = null;
-let _auth = null;
-let _authReadyPromise = null;
+let _app: FirebaseApp | null = null;
+let _db: Firestore | null = null;
+let _auth: Auth | null = null;
+let _authReadyPromise: Promise<string | null> | null = null;
 
 /** Idempotent app + Firestore + Auth init. Returns null if creds missing. */
-export function getFirebase() {
+export function getFirebase(): { app: FirebaseApp; db: Firestore; auth: Auth } | null {
   if (!firebaseEnabled) return null;
   if (!_app) {
     _app = getApps()[0] || initializeApp(firebaseConfig);
@@ -48,9 +49,9 @@ export function getFirebase() {
 }
 
 /** Ensures the current device is signed in anonymously and returns the uid. */
-export function ensureAnonymousAuth() {
+export function ensureAnonymousAuth(): Promise<string | null> {
   if (!firebaseEnabled) return Promise.resolve(null);
-  const { auth } = getFirebase();
+  const { auth } = getFirebase()!;
   if (_authReadyPromise) return _authReadyPromise;
   _authReadyPromise = new Promise((resolve, reject) => {
     const unsub = onAuthStateChanged(
@@ -76,7 +77,7 @@ export function ensureAnonymousAuth() {
 }
 
 /** Simple SHA-256 hex helper for PIN hashing. */
-export async function hashPin(pin) {
+export async function hashPin(pin?: string | null) {
   const enc = new TextEncoder().encode(String(pin ?? ''));
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf))
@@ -86,7 +87,7 @@ export async function hashPin(pin) {
 
 /** Room codes: 5 chars, no confusing letters. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-export function generateRoomCode(len = 5) {
+export function generateRoomCode(len = 5): string {
   let out = '';
   const buf = new Uint8Array(len);
   crypto.getRandomValues(buf);
@@ -94,7 +95,7 @@ export function generateRoomCode(len = 5) {
   return out;
 }
 
-export function generatePin(len = 4) {
+export function generatePin(len = 4): string {
   const buf = new Uint8Array(len);
   crypto.getRandomValues(buf);
   let out = '';

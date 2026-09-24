@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ui } from '../ui';
 
 const NAV_ITEMS = [
@@ -27,6 +28,13 @@ export default function AppNav({
   mode = 'solo',
   sessionCode = null,
   published = false,
+}: {
+  appState: string;
+  onNavigate: (navId: string) => void;
+  role?: string;
+  mode?: string;
+  sessionCode?: string | null;
+  published?: boolean;
 }) {
   const items = NAV_ITEMS.filter((item) => {
     if (!item.roles.includes(role)) return false;
@@ -109,6 +117,14 @@ export function PageShell({
   wide = false,
   children,
   className = '',
+}: {
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+  narrow?: boolean;
+  wide?: boolean;
+  children?: ReactNode;
+  className?: string;
 }) {
   const width = wide ? ui.pageWide : narrow ? ui.pageNarrow : ui.page;
   return (
@@ -127,7 +143,15 @@ export function PageShell({
   );
 }
 
-export function PageCard({ children, className = '', pad = true }) {
+export function PageCard({
+  children,
+  className = '',
+  pad = true,
+}: {
+  children?: ReactNode;
+  className?: string;
+  pad?: boolean;
+}) {
   return (
     <div className={`${ui.card} ${pad ? ui.cardPad : ''} ${className}`}>
       {children}
@@ -135,13 +159,23 @@ export function PageCard({ children, className = '', pad = true }) {
   );
 }
 
-export function InfoBanner({ children, tone = 'blue' }) {
+export function InfoBanner({ children, tone = 'blue' }: { children?: ReactNode; tone?: string }) {
   const toneClass =
     tone === 'orange' ? ui.infoOrange : tone === 'gray' ? ui.infoGray : ui.infoBlue;
   return <div className={`${ui.infoBox} ${toneClass} mb-4`}>{children}</div>;
 }
 
-export function DayJumpBar({ days, onJump, lockedDays = {}, accent = 'blue' }) {
+export function DayJumpBar({
+  days,
+  onJump,
+  lockedDays = {},
+  accent = 'blue',
+}: {
+  days: readonly string[];
+  onJump: (day: string) => void;
+  lockedDays?: Record<string, boolean>;
+  accent?: string;
+}) {
   return (
     <div className="flex gap-2">
       {days.map(day => {

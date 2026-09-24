@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: false, // we register manually in main.jsx
+      injectRegister: false, // we register manually in main.tsx
       // Large marketing PNG (schedule graphic) is loaded on demand — don't precache.
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-512x512.png'],
       manifest: {

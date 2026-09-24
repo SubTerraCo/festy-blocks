@@ -1,4 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
+import type {
+  AllHands,
+  Schedule,
+  ScheduleViewMode,
+  Settings,
+  TeamMember,
+  Updater,
+  WishlistMap,
+} from '../types';
 import { DAYS, getArtistsForSlot, formatTime } from '../data/festivalData';
 import {
   buildTimeSlots,
@@ -10,6 +19,15 @@ import {
 } from '../data/settings';
 import { PageShell, PageCard, InfoBanner } from './AppNav';
 import { ui } from '../ui';
+
+type ScheduleSwapFlow = {
+  step: 'pick-partner' | 'requester-confirm' | 'swapee-confirm';
+  day: string;
+  slotId: string;
+  requesterId: string | null;
+  partnerId?: string;
+  candidates?: TeamMember[];
+};
 
 export default function ScheduleView({
   team,
@@ -25,15 +43,29 @@ export default function ScheduleView({
   currentMemberId = null,
   isPublished = false,
   onPublish = null,
+}: {
+  team: TeamMember[];
+  wishlists: WishlistMap;
+  schedule: Schedule;
+  setSchedule: (updater: Updater<Schedule>) => void;
+  allHands: AllHands;
+  setAllHands: (updater: Updater<AllHands>) => void;
+  settings: Settings;
+  onBack: () => void;
+  initialMode?: ScheduleViewMode;
+  role?: string;
+  currentMemberId?: string | null;
+  isPublished?: boolean;
+  onPublish?: (() => void) | null;
 }) {
   const readOnly = role === 'member';
   const initialViewMode = readOnly ? 'personal' : initialMode;
-  const [selectedDay, setSelectedDay] = useState('friday');
-  const [viewMode, setViewMode] = useState(initialViewMode);
-  const [selectedMember, setSelectedMember] = useState(
+  const [selectedDay, setSelectedDay] = useState<string>('friday');
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>(initialViewMode);
+  const [selectedMember, setSelectedMember] = useState<string | null>(
     readOnly ? currentMemberId : team[0]?.id || null
   );
-  const [swapFlow, setSwapFlow] = useState(null);
+  const [swapFlow, setSwapFlow] = useState<ScheduleSwapFlow | null>(null);
   // { step, day, slotId, requesterId, partnerId }
 
   const timeSlots = useMemo(() => buildTimeSlots(settings), [settings]);
@@ -72,7 +104,7 @@ export default function ScheduleView({
 
   const handlePrint = () => window.print();
 
-  const toggleAllHands = (slotId) => {
+  const toggleAllHands = (slotId: string) => {
     const current = allHands[selectedDay] || [];
     setAllHands({
       ...allHands,
@@ -82,7 +114,7 @@ export default function ScheduleView({
     });
   };
 
-  const togglePersonOff = (day, slotId, memberId) => {
+  const togglePersonOff = (day: string, slotId: string, memberId: string) => {
     if (!setSchedule) return;
     const isAllHands = (allHands[day] || []).includes(slotId);
     if (isAllHands) {
@@ -123,13 +155,13 @@ export default function ScheduleView({
     });
   };
 
-  const openSwapFromSlot = (day, slotId, requesterId) => {
+  const openSwapFromSlot = (day: string, slotId: string, requesterId: string | null) => {
     const peopleOff = (schedule[day]?.[slotId] || []).filter(id => id !== requesterId);
     const partners = team.filter(m => peopleOff.includes(m.id));
     if (partners.length === 0) {
       // Requester might be working and wants off — partners are people who are OFF
       // Or requester is off and wants work — partners are people who are WORKING
-      const isRequesterOff = (schedule[day]?.[slotId] || []).includes(requesterId);
+      const isRequesterOff = (schedule[day]?.[slotId] || []).includes(requesterId as string);
       const candidates = isRequesterOff
         ? team.filter(m => m.id !== requesterId && !(schedule[day]?.[slotId] || []).includes(m.id))
         : team.filter(m => m.id !== requesterId && (schedule[day]?.[slotId] || []).includes(m.id));
@@ -149,20 +181,21 @@ export default function ScheduleView({
     });
   };
 
-  const confirmRequester = () => setSwapFlow(prev => ({ ...prev, step: 'swapee-confirm' }));
+  const confirmRequester = () =>
+    setSwapFlow(prev => ({ ...(prev as ScheduleSwapFlow), step: 'swapee-confirm' }));
 
   const applySwap = () => {
-    const { day, slotId, requesterId, partnerId } = swapFlow;
+    const { day, slotId, requesterId, partnerId } = swapFlow!;
     const peopleOff = [...(schedule[day][slotId] || [])];
-    const requesterOff = peopleOff.includes(requesterId);
-    const partnerOff = peopleOff.includes(partnerId);
+    const requesterOff = peopleOff.includes(requesterId as string);
+    const partnerOff = peopleOff.includes(partnerId as string);
 
     let nextOff = peopleOff.filter(id => id !== requesterId && id !== partnerId);
-    if (requesterOff && !partnerOff) nextOff.push(partnerId);
-    else if (!requesterOff && partnerOff) nextOff.push(requesterId);
+    if (requesterOff && !partnerOff) nextOff.push(partnerId as string);
+    else if (!requesterOff && partnerOff) nextOff.push(requesterId as string);
     else if (partnerOff) {
       nextOff = nextOff.filter(id => id !== partnerId);
-      if (!requesterOff) nextOff.push(requesterId);
+      if (!requesterOff) nextOff.push(requesterId as string);
     }
 
     setSchedule({
@@ -174,7 +207,7 @@ export default function ScheduleView({
 
   const requester = swapFlow ? team.find(m => m.id === swapFlow.requesterId) : null;
   const partner = swapFlow?.partnerId ? team.find(m => m.id === swapFlow.partnerId) : null;
-  const slotLabel = (id) => timeSlots.find(s => s.id === id)?.label || id;
+  const slotLabel = (id: string) => timeSlots.find(s => s.id === id)?.label || id;
 
   if (!schedule?.friday) {
     return (
@@ -233,12 +266,12 @@ export default function ScheduleView({
         {!readOnly && (
           <div className="flex justify-center mb-5 print:hidden">
             <div className="bg-slate-200 dark:bg-slate-700 p-1 rounded-lg flex flex-wrap gap-1">
-              {[
+              {([
                 { id: 'master', label: 'Master' },
                 { id: 'manual', label: 'Manual Edit' },
                 { id: 'swaps', label: 'Swaps' },
                 { id: 'personal', label: 'Per Person' },
-              ].map(mode => (
+              ] as { id: ScheduleViewMode; label: string }[]).map(mode => (
                 <button
                   key={mode.id}
                   type="button"
@@ -595,7 +628,7 @@ export default function ScheduleView({
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setSwapFlow(prev => ({ ...prev, partnerId: m.id, step: 'requester-confirm' }))}
+                  onClick={() => setSwapFlow(prev => ({ ...(prev as ScheduleSwapFlow), partnerId: m.id, step: 'requester-confirm' }))}
                   className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold"
                 >
                   {m.name}
