@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { Settings, TeamMember } from '../types';
 import {
   DEFAULT_SETTINGS,
   CONFLICT_STRATEGIES,
@@ -23,6 +24,14 @@ export default function SettingsForm({
   onSave,
   onReset,
   team = [],
+}: {
+  settings: Settings;
+  onChange: (next: Settings) => void;
+  mode?: string;
+  showActions?: boolean;
+  onSave?: () => void;
+  onReset?: () => void;
+  team?: TeamMember[];
 }) {
   const draft = mergeSettings(settings);
   const slots = useMemo(() => buildTimeSlots(draft), [
@@ -32,14 +41,14 @@ export default function SettingsForm({
   ]);
   const shiftsPerDay = slots.length;
 
-  const patch = (partial) => onChange(mergeSettings({ ...draft, ...partial }));
+  const patch = (partial: Partial<Settings>) => onChange(mergeSettings({ ...draft, ...partial }));
 
-  const setStart = (timeStr) => {
+  const setStart = (timeStr: string) => {
     const start = timeInputToDecimal(timeStr);
     patch({ dayStartHour: start });
   };
 
-  const setEnd = (timeStr) => {
+  const setEnd = (timeStr: string) => {
     let end = timeInputToDecimal(timeStr);
     // Overnight: if end input is "00:30" and start is afternoon, treat as 24.5
     if (end <= draft.dayStartHour) {
@@ -48,12 +57,12 @@ export default function SettingsForm({
     patch({ dayEndHour: end });
   };
 
-  const setLength = (value) => {
+  const setLength = (value: string | number) => {
     const length = Math.max(0.25, Number(value) || 1);
     patch({ shiftLengthHours: length });
   };
 
-  const setShiftsPerDay = (value) => {
+  const setShiftsPerDay = (value: string | number) => {
     const count = Math.max(1, Math.min(24, Number(value) || 1));
     const end = endFromStartCountLength(draft.dayStartHour, count, draft.shiftLengthHours);
     patch({ dayEndHour: end });

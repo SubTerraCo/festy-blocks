@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Settings, TeamMember, Updater, WishlistMap } from '../types';
 import SettingsForm from './SettingsForm';
 import { PageShell, PageCard } from './AppNav';
 import { ui } from '../ui';
@@ -13,10 +14,19 @@ export default function SettingsPage({
   onLeaveToStart,
   onClearLocalData,
   mode = 'solo',
+}: {
+  settings: Settings;
+  setSettings: (next: Settings) => void;
+  team?: TeamMember[];
+  onBack: () => void;
+  setWishlists: (updater: Updater<WishlistMap>) => void;
+  onLeaveToStart?: () => void;
+  onClearLocalData?: (() => void) | null;
+  mode?: string;
 }) {
   const [draft, setDraft] = useState(() => mergeSettings(settings));
 
-  const handleDraftChange = (next) => {
+  const handleDraftChange = (next: Settings) => {
     const merged = mergeSettings(next);
     setDraft(merged);
     if (merged.theme !== settings.theme) {

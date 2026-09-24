@@ -1,4 +1,5 @@
 import { DAYS } from '../data/festivalData';
+import type { Schedule, Settings, TeamMember, WishlistMap } from '../types';
 import {
   getHoursOffTarget,
   getHoursOnRequired,
@@ -21,13 +22,25 @@ export default function WishlistHub({
   onGoToSwaps,
   role = 'solo',
   currentMemberId = null,
+}: {
+  team: TeamMember[];
+  wishlists: WishlistMap;
+  schedule: Schedule;
+  settings: Settings;
+  onPickFor: (memberId: string) => void;
+  onResolve: () => void;
+  onBack: () => void;
+  onOpenSettings: () => void;
+  onGoToSwaps: () => void;
+  role?: string;
+  currentMemberId?: string | null;
 }) {
   const isMember = role === 'member';
   const visibleTeam = isMember
     ? team.filter((m) => m.id === currentMemberId)
     : team;
 
-  const getProgress = (member) => {
+  const getProgress = (member: TeamMember) => {
     const target = getHoursOffTarget(member, settings);
     const picks = wishlists[member.id] || [];
     const totalPicks = picks.length;

@@ -1,17 +1,26 @@
 import { useState } from 'react';
+import type { TeamMember, TimeLogEntry, TimeLogs, Updater } from '../types';
 import { DAYS } from '../data/festivalData';
 import { PageShell, PageCard } from './AppNav';
 import { ui } from '../ui';
 
-export default function TimeClock({ team, timeLogs, setTimeLogs }) {
-  const [selectedDay, setSelectedDay] = useState('friday');
-  const [editingLog, setEditingLog] = useState(null);
+export default function TimeClock({
+  team,
+  timeLogs,
+  setTimeLogs,
+}: {
+  team: TeamMember[];
+  timeLogs: TimeLogs;
+  setTimeLogs: (updater: Updater<TimeLogs>) => void;
+}) {
+  const [selectedDay, setSelectedDay] = useState<string>('friday');
+  const [editingLog, setEditingLog] = useState<{ memberId: string; logIndex: number } | null>(null);
   const [editIn, setEditIn] = useState('');
   const [editOut, setEditOut] = useState('');
 
   const currentDayLogs = timeLogs[selectedDay] || {};
 
-  const handleClockIn = (memberId) => {
+  const handleClockIn = (memberId: string) => {
     const now = new Date().toISOString();
     const memberLogs = currentDayLogs[memberId] || [];
     setTimeLogs({
@@ -23,7 +32,7 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
     });
   };
 
-  const handleClockOut = (memberId) => {
+  const handleClockOut = (memberId: string) => {
     const now = new Date().toISOString();
     const memberLogs = [...(currentDayLogs[memberId] || [])];
     if (memberLogs.length > 0) {
@@ -41,28 +50,28 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
     }
   };
 
-  const formatTime = (isoString) => {
+  const formatTime = (isoString: string | null) => {
     if (!isoString) return '--:--';
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const calculateHours = (logIn, logOut) => {
+  const calculateHours = (logIn: string | null, logOut: string | null) => {
     if (!logIn || !logOut) return 0;
-    return ((new Date(logOut) - new Date(logIn)) / (1000 * 60 * 60)).toFixed(2);
+    return (((new Date(logOut) as unknown as number) - (new Date(logIn) as unknown as number)) / (1000 * 60 * 60)).toFixed(2);
   };
 
-  const calculateTotalHours = (memberId) => {
+  const calculateTotalHours = (memberId: string) => {
     const logs = currentDayLogs[memberId] || [];
     let total = 0;
     logs.forEach(log => {
-      if (log.in && log.out) total += parseFloat(calculateHours(log.in, log.out));
+      if (log.in && log.out) total += parseFloat(calculateHours(log.in, log.out) as string);
     });
     return total.toFixed(2);
   };
 
-  const startEdit = (memberId, logIndex, log) => {
+  const startEdit = (memberId: string, logIndex: number, log: TimeLogEntry) => {
     setEditingLog({ memberId, logIndex });
-    const toInputFormat = (iso) => {
+    const toInputFormat = (iso: string | null) => {
       if (!iso) return '';
       const d = new Date(iso);
       d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -73,7 +82,7 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
   };
 
   const saveEdit = () => {
-    const { memberId, logIndex } = editingLog;
+    const { memberId, logIndex } = editingLog!;
     const memberLogs = [...currentDayLogs[memberId]];
     memberLogs[logIndex] = {
       in: editIn ? new Date(editIn).toISOString() : null,
@@ -86,7 +95,7 @@ export default function TimeClock({ team, timeLogs, setTimeLogs }) {
     setEditingLog(null);
   };
 
-  const deleteLog = (memberId, logIndex) => {
+  const deleteLog = (memberId: string, logIndex: number) => {
     if (confirm('Delete this time entry?')) {
       const memberLogs = [...currentDayLogs[memberId]];
       memberLogs.splice(logIndex, 1);

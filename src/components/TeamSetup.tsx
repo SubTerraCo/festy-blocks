@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import type { Settings, TeamMember, Updater } from '../types';
 import SettingsForm from './SettingsForm';
 import CoverageDashboard from './CoverageDashboard';
 import { PageShell, PageCard, InfoBanner } from './AppNav';
@@ -14,21 +15,29 @@ export default function TeamSetup({
   onComplete,
   sessionMode = false,
   sessionCode = null,
+}: {
+  team: TeamMember[];
+  setTeam: (updater: Updater<TeamMember[]>) => void;
+  settings: Settings;
+  setSettings: (updater: Updater<Settings>) => void;
+  onComplete: () => void;
+  sessionMode?: boolean;
+  sessionCode?: string | null;
 }) {
   const [newName, setNewName] = useState('');
-  const [newRole, setNewRole] = useState('regular');
-  const [step, setStep] = useState('schedule');
+  const [newRole, setNewRole] = useState<string>('regular');
+  const [step, setStep] = useState<'schedule' | 'team'>('schedule');
   /** Plain PINs shown to facilitator (not stored in Firestore — only pinHash is). */
-  const [memberPins, setMemberPins] = useState({});
+  const [memberPins, setMemberPins] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
 
-  const handleAddMember = async (e) => {
+  const handleAddMember = async (e: FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || adding) return;
     setAdding(true);
     try {
       const id = crypto.randomUUID();
-      const member = {
+      const member: TeamMember = {
         id,
         name: newName.trim(),
         role: newRole,
@@ -46,7 +55,7 @@ export default function TeamSetup({
     }
   };
 
-  const handleRemoveMember = (id) => {
+  const handleRemoveMember = (id: string) => {
     setMemberPins((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -55,7 +64,7 @@ export default function TeamSetup({
     setTeam(team.filter((member) => member.id !== id));
   };
 
-  const copyPin = async (pin) => {
+  const copyPin = async (pin: string) => {
     try {
       await navigator.clipboard.writeText(pin);
     } catch {
@@ -63,7 +72,7 @@ export default function TeamSetup({
     }
   };
 
-  const moveMember = (index, direction) => {
+  const moveMember = (index: number, direction: 'up' | 'down') => {
     const newTeam = [...team];
     if (direction === 'up' && index > 0) {
       [newTeam[index - 1], newTeam[index]] = [newTeam[index], newTeam[index - 1]];

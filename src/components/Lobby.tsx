@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSession } from '../context/SessionProvider';
 import { ui } from '../ui';
 
@@ -9,7 +9,7 @@ import { ui } from '../ui';
  *   - Join flow: enter code, then claim a member (name + PIN)
  *
  * Once a facilitator creates a session, or a member has claimed their name,
- * App.jsx renders the normal scheduler UI.
+ * App.tsx renders the normal scheduler UI.
  */
 export default function Lobby() {
   const {
@@ -28,14 +28,14 @@ export default function Lobby() {
     error,
   } = useSession();
 
-  const [view, setView] = useState('landing'); // 'landing' | 'create' | 'join'
+  const [view, setView] = useState<'landing' | 'create' | 'join'>('landing');
   const [facilitatorPin, setFacilitatorPin] = useState('');
   const [showFacilitatorPin, setShowFacilitatorPin] = useState(false);
   const [codeInput, setCodeInput] = useState('');
-  const [pickerMemberId, setPickerMemberId] = useState(null);
+  const [pickerMemberId, setPickerMemberId] = useState<string | null>(null);
   const [memberPin, setMemberPin] = useState('');
   const [busy, setBusy] = useState(false);
-  const [localError, setLocalError] = useState(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const err = localError || error;
 
@@ -45,7 +45,7 @@ export default function Lobby() {
     try {
       await createSession({ facilitatorPin: facilitatorPin || undefined });
     } catch (e) {
-      setLocalError(e?.message || String(e));
+      setLocalError((e as { message?: string } | undefined)?.message || String(e));
     } finally {
       setBusy(false);
     }
@@ -58,7 +58,7 @@ export default function Lobby() {
       await joinSession(codeInput);
       setView('join'); // still on join view — now shows member list
     } catch (e) {
-      setLocalError(e?.message || String(e));
+      setLocalError((e as { message?: string } | undefined)?.message || String(e));
     } finally {
       setBusy(false);
     }
@@ -74,13 +74,13 @@ export default function Lobby() {
     try {
       await claimMember(pickerMemberId, memberPin);
     } catch (e) {
-      setLocalError(e?.message || String(e));
+      setLocalError((e as { message?: string } | undefined)?.message || String(e));
     } finally {
       setBusy(false);
     }
   };
 
-  const shell = (children) => (
+  const shell = (children: ReactNode) => (
     <div className="app-shell min-h-screen">
       <header className="app-nav bg-blue-600 text-white shadow-md print:hidden">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-3">

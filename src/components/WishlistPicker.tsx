@@ -1,30 +1,47 @@
 import { useMemo, useRef, useState } from 'react';
+import type { Settings, TeamMember, Updater, WishlistMap } from '../types';
 import { DAYS, getArtistsForSlot, formatTime } from '../data/festivalData';
 import { getHoursOffTarget, buildTimeSlots } from '../data/settings';
 import { DayJumpBar } from './AppNav';
 import { ui } from '../ui';
 
-export default function WishlistPicker({ team, memberId, wishlists, setWishlists, onSave, settings, readOnly = false }) {
-  const [graphicDay, setGraphicDay] = useState('friday');
+export default function WishlistPicker({
+  team,
+  memberId,
+  wishlists,
+  setWishlists,
+  onSave,
+  settings,
+  readOnly = false,
+}: {
+  team: TeamMember[];
+  memberId: string;
+  wishlists: WishlistMap;
+  setWishlists: (updater: Updater<WishlistMap>) => void;
+  onSave: () => void;
+  settings: Settings;
+  readOnly?: boolean;
+}) {
+  const [graphicDay, setGraphicDay] = useState<string>('friday');
   const [showOfficialSchedule, setShowOfficialSchedule] = useState(false);
-  const dayRefs = useRef({});
+  const dayRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const member = team.find(m => m.id === memberId);
   const timeSlots = useMemo(() => buildTimeSlots(settings), [settings]);
   const maxOff = getHoursOffTarget(member, settings);
 
   const memberPicks = wishlists[memberId] || [];
-  const getDayPicks = (day) => memberPicks.filter(p => p.startsWith(day + '|')).map(p => p.split('|')[1]);
+  const getDayPicks = (day: string) => memberPicks.filter(p => p.startsWith(day + '|')).map(p => p.split('|')[1]);
 
-  const getPicksLeft = (day) => Math.max(0, maxOff - getDayPicks(day).length);
-  const isDayComplete = (day) => getDayPicks(day).length >= maxOff && maxOff > 0;
+  const getPicksLeft = (day: string) => Math.max(0, maxOff - getDayPicks(day).length);
+  const isDayComplete = (day: string) => getDayPicks(day).length >= maxOff && maxOff > 0;
 
-  const scrollToDay = (day) => {
+  const scrollToDay = (day: string) => {
     setGraphicDay(day);
     dayRefs.current[day]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleToggleSlot = (day, slotId) => {
+  const handleToggleSlot = (day: string, slotId: string) => {
     if (readOnly) return;
     const pickStr = `${day}|${slotId}`;
     setWishlists((prev) => {
@@ -44,9 +61,9 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
     });
   };
 
-  const clearDayPicks = (day) => {
+  const clearDayPicks = (day: string) => {
     if (readOnly) return;
-    if (confirm(`Clear all of ${member.name}'s picks for ${day}?`)) {
+    if (confirm(`Clear all of ${member!.name}'s picks for ${day}?`)) {
       setWishlists((prev) => {
         const current = prev[memberId] || [];
         return { ...prev, [memberId]: current.filter(p => !p.startsWith(day + '|')) };
@@ -56,14 +73,14 @@ export default function WishlistPicker({ team, memberId, wishlists, setWishlists
 
   const clearAllPicks = () => {
     if (readOnly) return;
-    if (confirm(`Clear all of ${member.name}'s picks for the whole weekend?`)) {
+    if (confirm(`Clear all of ${member!.name}'s picks for the whole weekend?`)) {
       setWishlists((prev) => ({ ...prev, [memberId]: [] }));
     }
   };
 
-  const getOthersWantingSlot = (day, slotId) => {
+  const getOthersWantingSlot = (day: string, slotId: string) => {
     const pickStr = `${day}|${slotId}`;
-    const others = [];
+    const others: string[] = [];
     Object.entries(wishlists).forEach(([otherId, theirPicks]) => {
       if (otherId !== memberId && Array.isArray(theirPicks) && theirPicks.includes(pickStr)) {
         const otherMember = team.find(m => m.id === otherId);

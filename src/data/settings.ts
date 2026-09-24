@@ -1,6 +1,8 @@
+import type { Schedule, Settings, TeamMember } from '../types';
+
 /** Decimal hours: 12.5 = 12:30 PM, 24.5 = 12:30 AM next day */
 
-export const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS: Settings = {
   minCoverage: 3,
   hoursOnByRole: {
     volunteer: 6,
@@ -46,7 +48,7 @@ export const CONFLICT_STRATEGIES = [
   },
 ];
 
-export function mergeSettings(partial) {
+export function mergeSettings(partial?: Partial<Settings> | null): Settings {
   return {
     ...DEFAULT_SETTINGS,
     ...(partial || {}),
@@ -57,7 +59,7 @@ export function mergeSettings(partial) {
   };
 }
 
-export function formatDecimalHour(decimal) {
+export function formatDecimalHour(decimal: number) {
   const totalMinutes = Math.round(decimal * 60);
   let hours24 = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -70,21 +72,21 @@ export function formatDecimalHour(decimal) {
   return `${hours12}:${minsStr} ${ampm}${nextDay ? ' (+1)' : ''}`;
 }
 
-export function decimalToTimeInput(decimal) {
+export function decimalToTimeInput(decimal: number) {
   const totalMinutes = Math.round(decimal * 60);
   const hours24 = ((Math.floor(totalMinutes / 60) % 24) + 24) % 24;
   const minutes = ((totalMinutes % 60) + 60) % 60;
   return `${hours24.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
-export function timeInputToDecimal(value) {
+export function timeInputToDecimal(value: string) {
   if (!value || !value.includes(':')) return 12.5;
   const [h, m] = value.split(':').map(Number);
   return h + m / 60;
 }
 
 /** Build slot list from settings. dayEnd may be next calendar day (>= 24). */
-export function buildTimeSlots(settings) {
+export function buildTimeSlots(settings?: Partial<Settings> | null) {
   const s = mergeSettings(settings);
   const length = Math.max(0.25, Number(s.shiftLengthHours) || 1);
   let start = Number(s.dayStartHour);
@@ -114,22 +116,32 @@ export function buildTimeSlots(settings) {
   return slots;
 }
 
-export function getShiftsPerDay(settings) {
+export function getShiftsPerDay(settings?: Partial<Settings> | null) {
   return buildTimeSlots(settings).length;
 }
 
 /** Derive end hour from start + shifts * length */
-export function endFromStartCountLength(startHour, shiftsPerDay, shiftLengthHours) {
+export function endFromStartCountLength(
+  startHour: number,
+  shiftsPerDay: number,
+  shiftLengthHours: number,
+) {
   return Number(startHour) + Number(shiftsPerDay) * Number(shiftLengthHours);
 }
 
-export function getHoursOnRequired(member, settings) {
+export function getHoursOnRequired(
+  member: { role?: string } | null | undefined,
+  settings?: Partial<Settings> | null,
+) {
   const role = member?.role || 'regular';
   const map = mergeSettings(settings).hoursOnByRole;
   return map[role] ?? DEFAULT_SETTINGS.hoursOnByRole.regular;
 }
 
-export function getHoursOffTarget(member, settings) {
+export function getHoursOffTarget(
+  member: { role?: string } | null | undefined,
+  settings?: Partial<Settings> | null,
+) {
   const slots = buildTimeSlots(settings).length;
   const on = getHoursOnRequired(member, settings);
   return Math.max(0, slots - on);
@@ -140,7 +152,7 @@ export function getHoursOffTarget(member, settings) {
  * Demand = shiftsPerDay × minCoverage person-slots per day.
  * Volunteer supply is locked to their hours ON; remainder is split across regulars.
  */
-export function computeCoveragePlan(team = [], settings) {
+export function computeCoveragePlan(team: TeamMember[] = [], settings?: Partial<Settings> | null) {
   const s = mergeSettings(settings);
   const slots = buildTimeSlots(s).length;
   const minCoverage = Math.max(1, Number(s.minCoverage) || 1);
@@ -162,12 +174,12 @@ export function computeCoveragePlan(team = [], settings) {
     regularCount > 0 ? remainingForRegulars / regularCount : null;
   const regularHoursSuggested =
     regularCount > 0
-      ? clampHoursOn(Math.round(regularHoursExact), slots)
+      ? clampHoursOn(Math.round(regularHoursExact as number), slots)
       : null;
 
   const equalHoursExact = teamCount > 0 ? demand / teamCount : null;
   const equalHoursSuggested =
-    teamCount > 0 ? clampHoursOn(Math.round(equalHoursExact), slots) : null;
+    teamCount > 0 ? clampHoursOn(Math.round(equalHoursExact as number), slots) : null;
 
   const currentSupply =
     volunteerCount * volunteerHoursOn + regularCount * regularHoursOn;
@@ -203,23 +215,26 @@ export function computeCoveragePlan(team = [], settings) {
   };
 }
 
-export function clampHoursOn(value, slots) {
+export function clampHoursOn(value: number | string, slots: number) {
   const maxOn = Math.max(0, slots);
   const n = Math.round(Number(value) || 0);
   return Math.max(0, Math.min(maxOn, n));
 }
 
-export function getMinCoverage(settings) {
+export function getMinCoverage(settings?: Partial<Settings> | null) {
   return mergeSettings(settings).minCoverage;
 }
 
-export function getConflictStrategy(settings) {
+export function getConflictStrategy(settings?: Partial<Settings> | null) {
   return mergeSettings(settings).conflictStrategy;
 }
 
-export function emptyScheduleSkeleton(settings, days = ['friday', 'saturday', 'sunday']) {
+export function emptyScheduleSkeleton(
+  settings?: Partial<Settings> | null,
+  days: string[] = ['friday', 'saturday', 'sunday'],
+): Schedule {
   const slots = buildTimeSlots(settings);
-  const schedule = {};
+  const schedule = {} as Schedule;
   days.forEach(day => {
     schedule[day] = {};
     slots.forEach(slot => {
@@ -229,22 +244,34 @@ export function emptyScheduleSkeleton(settings, days = ['friday', 'saturday', 's
   return schedule;
 }
 
-export function emptyWishlistsSkeleton(settings, days = ['friday', 'saturday', 'sunday']) {
-  const schedule = {};
+export function emptyWishlistsSkeleton(
+  settings?: Partial<Settings> | null,
+  days: string[] = ['friday', 'saturday', 'sunday'],
+) {
+  const schedule: Record<string, Record<string, never>> = {};
   days.forEach(day => {
     schedule[day] = {};
   });
   return schedule;
 }
 
-export function getMemberDayOffCount(schedule, memberId, day, settings) {
+export function getMemberDayOffCount(
+  schedule: Schedule | null | undefined,
+  memberId: string,
+  day: string,
+  settings?: Partial<Settings> | null,
+) {
   const slots = buildTimeSlots(settings);
   if (!schedule?.[day]) return 0;
   return slots.filter(slot => (schedule[day][slot.id] || []).includes(memberId)).length;
 }
 
 /** True when every member has exactly their off-target hours for every day */
-export function isTeamScheduleComplete(team, schedule, settings) {
+export function isTeamScheduleComplete(
+  team: TeamMember[] | null | undefined,
+  schedule: Schedule | null | undefined,
+  settings?: Partial<Settings> | null,
+) {
   if (!team?.length || !schedule) return false;
   const days = ['friday', 'saturday', 'sunday'];
   return team.every(member => {

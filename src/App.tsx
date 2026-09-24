@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { AppScreen } from './types'
 import AppNav from './components/AppNav'
 import TeamSetup from './components/TeamSetup'
 import WishlistHub from './components/WishlistHub'
@@ -46,12 +47,12 @@ function App() {
       : 'wishlist_picker'
     : 'setup'
 
-  const [appState, setAppState] = useState(defaultAppState)
-  const [scheduleMode, setScheduleMode] = useState('master')
+  const [appState, setAppState] = useState<AppScreen>(defaultAppState)
+  const [scheduleMode, setScheduleMode] = useState<'master' | 'swaps'>('master')
   const [currentPickerId, setCurrentPickerId] = useState(
     memberMode ? currentMemberId : null
   )
-  const [prevAppState, setPrevAppState] = useState(defaultAppState)
+  const [prevAppState, setPrevAppState] = useState<AppScreen>(defaultAppState)
 
   // Keep member's active picker in sync with claim
   useEffect(() => {
@@ -74,7 +75,7 @@ function App() {
     setAppState('settings')
   }
 
-  const handleNav = (navId) => {
+  const handleNav = (navId: string) => {
     switch (navId) {
       case 'setup':
         setAppState('setup')

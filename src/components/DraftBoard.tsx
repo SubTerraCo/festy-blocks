@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import type { Schedule, Settings, TeamMember, Updater, WishlistMap } from '../types';
 import { DAYS, getArtistsForSlot, formatTime } from '../data/festivalData';
 import {
   getHoursOffTarget,
@@ -11,17 +12,46 @@ import {
 import { DayJumpBar } from './AppNav';
 import { ui } from '../ui';
 
-export default function DraftBoard({ team, wishlists, schedule, setSchedule, onComplete, onBack, settings, onOpenSettings, onGoToSwaps }) {
+type PendingPick = { mode: 'off' | 'work'; day: string; slotId: string };
+
+type DraftSwapFlow = {
+  step: 'pick-partner' | 'requester-confirm' | 'swapee-confirm';
+  day: string;
+  slotId: string;
+  partnerId?: string;
+};
+
+export default function DraftBoard({
+  team,
+  wishlists,
+  schedule,
+  setSchedule,
+  onComplete,
+  onBack,
+  settings,
+  onOpenSettings,
+  onGoToSwaps,
+}: {
+  team: TeamMember[];
+  wishlists: WishlistMap;
+  schedule: Schedule;
+  setSchedule: (updater: Updater<Schedule>) => void;
+  onComplete: () => void;
+  onBack: () => void;
+  settings: Settings;
+  onOpenSettings?: () => void;
+  onGoToSwaps?: () => void;
+}) {
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
-  const [graphicDay, setGraphicDay] = useState('friday');
+  const [graphicDay, setGraphicDay] = useState<string>('friday');
   const [showOfficialSchedule, setShowOfficialSchedule] = useState(false);
 
   // { mode: 'off' | 'work', day, slotId }
-  const [pendingPick, setPendingPick] = useState(null);
-  const [swapFlow, setSwapFlow] = useState(null);
+  const [pendingPick, setPendingPick] = useState<PendingPick | null>(null);
+  const [swapFlow, setSwapFlow] = useState<DraftSwapFlow | null>(null);
 
-  const dayRefs = useRef({});
+  const dayRefs = useRef<Record<string, HTMLElement | null>>({});
   const currentPicker = team[currentTurnIndex];
   const minCoverage = getMinCoverage(settings);
   const timeSlots = useMemo(() => buildTimeSlots(settings), [settings]);
@@ -46,16 +76,16 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
     if (changed) setSchedule(next);
   }, [timeSlots]);
 
-  const getHoursOff = (memberId, day) => {
+  const getHoursOff = (memberId: string, day: string) => {
     if (!schedule[day]) return 0;
     return timeSlots.filter(slot => (schedule[day][slot.id] || []).includes(memberId)).length;
   };
 
-  const getHoursWorking = (memberId, day) => timeSlots.length - getHoursOff(memberId, day);
+  const getHoursWorking = (memberId: string, day: string) => timeSlots.length - getHoursOff(memberId, day);
 
-  const getTargetOff = (member) => getHoursOffTarget(member, settings);
+  const getTargetOff = (member: TeamMember | undefined) => getHoursOffTarget(member, settings);
 
-  const getDayStatus = (member, day) => {
+  const getDayStatus = (member: TeamMember, day: string) => {
     const actual = getHoursOff(member.id, day);
     const target = getTargetOff(member);
     return {
@@ -68,14 +98,14 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
     };
   };
 
-  const getPeopleOffMembers = (day, slotId) => {
+  const getPeopleOffMembers = (day: string, slotId: string) => {
     const ids = schedule[day]?.[slotId] || [];
     return team.filter(m => ids.includes(m.id));
   };
 
-  const getSlotLabel = (slotId) => timeSlots.find(s => s.id === slotId)?.label || slotId;
+  const getSlotLabel = (slotId: string) => timeSlots.find(s => s.id === slotId)?.label || slotId;
 
-  const scrollToDay = (day) => {
+  const scrollToDay = (day: string) => {
     setGraphicDay(day);
     dayRefs.current[day]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -90,7 +120,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
     }
   };
 
-  const handleSelectSlot = (day, slotId) => {
+  const handleSelectSlot = (day: string, slotId: string) => {
     const status = getDayStatus(currentPicker, day);
     const peopleOff = schedule[day][slotId] || [];
     const isPickerOff = peopleOff.includes(currentPicker.id);
@@ -153,7 +183,7 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
     advanceTurn();
   };
 
-  const openSwapPicker = (day, slotId) => {
+  const openSwapPicker = (day: string, slotId: string) => {
     const peopleOff = getPeopleOffMembers(day, slotId).filter(m => m.id !== currentPicker.id);
     if (peopleOff.length === 0) {
       alert('No one else has this block off to swap with.');
@@ -162,24 +192,24 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
     setSwapFlow({ step: 'pick-partner', day, slotId });
   };
 
-  const selectSwapPartner = (partnerId) => {
-    setSwapFlow(prev => ({ ...prev, step: 'requester-confirm', partnerId }));
+  const selectSwapPartner = (partnerId: string) => {
+    setSwapFlow(prev => ({ ...(prev as DraftSwapFlow), step: 'requester-confirm', partnerId }));
   };
 
   const confirmRequesterSwap = () => {
-    setSwapFlow(prev => ({ ...prev, step: 'swapee-confirm' }));
+    setSwapFlow(prev => ({ ...(prev as DraftSwapFlow), step: 'swapee-confirm' }));
   };
 
   const confirmSwapeeSwap = () => {
-    const { day, slotId, partnerId } = swapFlow;
+    const { day, slotId, partnerId } = swapFlow!;
     const peopleOff = [...(schedule[day][slotId] || [])];
     const pickerIsOff = peopleOff.includes(currentPicker.id);
-    const partnerIsOff = peopleOff.includes(partnerId);
+    const partnerIsOff = peopleOff.includes(partnerId as string);
 
     let nextOff = peopleOff.filter(id => id !== currentPicker.id && id !== partnerId);
 
     if (pickerIsOff && !partnerIsOff) {
-      nextOff.push(partnerId);
+      nextOff.push(partnerId as string);
     } else if (!pickerIsOff && partnerIsOff) {
       nextOff.push(currentPicker.id);
     } else if (partnerIsOff) {
@@ -187,18 +217,18 @@ export default function DraftBoard({ team, wishlists, schedule, setSchedule, onC
       if (!pickerIsOff) nextOff.push(currentPicker.id);
     }
 
-    const hoursOffAfter = (memberId) =>
+    const hoursOffAfter = (memberId: string) =>
       timeSlots.filter(slot => {
         const offs = slot.id === slotId ? nextOff : (schedule[day][slot.id] || []);
         return offs.includes(memberId);
       }).length;
 
-    const wouldExceed = (memberId) => {
+    const wouldExceed = (memberId: string) => {
       const member = team.find(m => m.id === memberId);
       return hoursOffAfter(memberId) > getTargetOff(member);
     };
 
-    if (wouldExceed(currentPicker.id) || wouldExceed(partnerId)) {
+    if (wouldExceed(currentPicker.id) || wouldExceed(partnerId as string)) {
       const ok = confirm(
         'This swap would put someone over their exact hours-off target. Continue anyway? (You can fix it on the next draft turns.)'
       );

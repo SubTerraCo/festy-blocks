@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useState,
+  type ReactNode,
 } from 'react';
 import {
   collection,
@@ -25,8 +26,60 @@ import {
 } from '../data/firebase';
 import { mergeSettings } from '../data/settings';
 import { applyTheme } from '../data/theme';
+import type {
+  AllHands,
+  AppMode,
+  AppRole,
+  Schedule,
+  SessionDoc,
+  Settings,
+  TeamMember,
+  TimeLogs,
+  Updater,
+  WishlistMap,
+} from '../types';
 
-const SessionContext = createContext(null);
+type SessionInfo = {
+  code: string;
+  status: string | null;
+  facilitatorUid: string | null;
+};
+
+export type SessionContextValue = {
+  mode: AppMode;
+  role: AppRole;
+  ready: boolean;
+  online: boolean;
+  error: string | null;
+  firebaseEnabled: boolean;
+  session: SessionInfo | null;
+  isPublished: boolean;
+  currentMemberId: string | null;
+  team: TeamMember[];
+  wishlists: WishlistMap;
+  schedule: Schedule;
+  allHands: AllHands;
+  timeLogs: TimeLogs;
+  settings: Settings;
+  setTeam: (updater: Updater<TeamMember[]>) => void;
+  setWishlists: (updater: Updater<WishlistMap>) => void;
+  setSchedule: (updater: Updater<Schedule>) => void;
+  setAllHands: (updater: Updater<AllHands>) => void;
+  setTimeLogs: (updater: Updater<TimeLogs>) => void;
+  setSettings: (updater: Updater<Settings>) => void;
+  enterSolo: () => void;
+  leaveMode: () => void;
+  resetSoloData: () => void;
+  createSession: (opts?: { facilitatorPin?: string }) => Promise<{ code: string }>;
+  joinSession: (rawCode: string) => Promise<{ code: string }>;
+  claimMember: (memberId: string, pin: string) => Promise<{ memberId: string }>;
+  releaseClaim: () => void;
+  publishSchedule: () => Promise<void> | undefined;
+  setStatus: (status: string) => Promise<void> | undefined;
+  generatePin: typeof generatePin;
+};
+
+const SessionContext = createContext<SessionContextValue | null>(null);
 
 const LS = {
   team: 'festival-team',
@@ -45,38 +98,44 @@ const EMPTY_SCHEDULE = { friday: {}, saturday: {}, sunday: {} };
 const EMPTY_ALLHANDS = { friday: [], saturday: [], sunday: [] };
 
 /** Legacy day-grouped wishlists -> global "day|slot" arrays per member. */
-function migrateWishlists(raw) {
+function migrateWishlists(raw: unknown): WishlistMap {
   if (!raw || typeof raw !== 'object') return {};
-  if (raw.friday && !Array.isArray(raw.friday)) {
-    const migrated = {};
+  const data = raw as {
+    friday?: Record<string, string[]> | string[];
+    saturday?: Record<string, string[]>;
+    sunday?: Record<string, string[]>;
+  };
+  if (data.friday && !Array.isArray(data.friday)) {
+    const migrated: WishlistMap = {};
+    const friday = data.friday;
     const memberIds = new Set([
-      ...Object.keys(raw.friday || {}),
-      ...Object.keys(raw.saturday || {}),
-      ...Object.keys(raw.sunday || {}),
+      ...Object.keys(friday || {}),
+      ...Object.keys(data.saturday || {}),
+      ...Object.keys(data.sunday || {}),
     ]);
     memberIds.forEach((id) => {
       migrated[id] = [
-        ...(raw.friday?.[id] || []).map((s) => `friday|${s}`),
-        ...(raw.saturday?.[id] || []).map((s) => `saturday|${s}`),
-        ...(raw.sunday?.[id] || []).map((s) => `sunday|${s}`),
+        ...(friday?.[id] || []).map((s) => `friday|${s}`),
+        ...(data.saturday?.[id] || []).map((s) => `saturday|${s}`),
+        ...(data.sunday?.[id] || []).map((s) => `sunday|${s}`),
       ];
     });
     return migrated;
   }
-  return raw;
+  return raw as WishlistMap;
 }
 
-function readJson(key, fallback) {
+function readJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
   if (!raw) return fallback;
   try {
-    return JSON.parse(raw);
+    return JSON.parse(raw) as T;
   } catch {
     return fallback;
   }
 }
 
-function arraysEqual(a, b) {
+function arraysEqual(a: unknown, b: unknown) {
   if (a === b) return true;
   if (!Array.isArray(a) || !Array.isArray(b)) return false;
   if (a.length !== b.length) return false;
@@ -84,24 +143,26 @@ function arraysEqual(a, b) {
   return true;
 }
 
-export function SessionProvider({ children }) {
-  const [mode, setMode] = useState(() => localStorage.getItem(LS.mode) || 'none');
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const [mode, setMode] = useState<AppMode>(
+    () => (localStorage.getItem(LS.mode) as AppMode | null) || 'none',
+  );
 
   // ---------- solo state (mirrors legacy localStorage) ----------
-  const [soloTeam, setSoloTeam] = useState(() => readJson(LS.team, []));
-  const [soloWishlists, setSoloWishlists] = useState(() =>
+  const [soloTeam, setSoloTeam] = useState<TeamMember[]>(() => readJson(LS.team, []));
+  const [soloWishlists, setSoloWishlists] = useState<WishlistMap>(() =>
     migrateWishlists(readJson(LS.wishlists, {}))
   );
-  const [soloSchedule, setSoloSchedule] = useState(() => {
-    const s = readJson(LS.schedule, null);
+  const [soloSchedule, setSoloSchedule] = useState<Schedule>(() => {
+    const s = readJson<Schedule | null>(LS.schedule, null);
     return s?.friday ? s : EMPTY_SCHEDULE;
   });
-  const [soloAllHands, setSoloAllHands] = useState(() => {
-    const s = readJson(LS.allHands, null);
+  const [soloAllHands, setSoloAllHands] = useState<AllHands>(() => {
+    const s = readJson<AllHands | null>(LS.allHands, null);
     return s?.friday ? s : EMPTY_ALLHANDS;
   });
-  const [soloTimeLogs, setSoloTimeLogs] = useState(() => readJson(LS.timeLogs, {}));
-  const [soloSettings, setSoloSettings] = useState(() =>
+  const [soloTimeLogs, setSoloTimeLogs] = useState<TimeLogs>(() => readJson(LS.timeLogs, {}));
+  const [soloSettings, setSoloSettings] = useState<Settings>(() =>
     mergeSettings(readJson(LS.settings, null))
   );
 
@@ -113,21 +174,23 @@ export function SessionProvider({ children }) {
   useEffect(() => { localStorage.setItem(LS.settings, JSON.stringify(soloSettings)); }, [soloSettings]);
 
   // ---------- session state ----------
-  const [sessionCode, setSessionCode] = useState(() => localStorage.getItem(LS.sessionCode) || null);
-  const [sessionDoc, setSessionDoc] = useState(null);
-  const [sessionMembers, setSessionMembers] = useState([]);
-  const [sessionWishlists, setSessionWishlists] = useState({});
-  const [claimedMemberId, setClaimedMemberId] = useState(() => {
+  const [sessionCode, setSessionCode] = useState<string | null>(
+    () => localStorage.getItem(LS.sessionCode) || null,
+  );
+  const [sessionDoc, setSessionDoc] = useState<SessionDoc | null>(null);
+  const [sessionMembers, setSessionMembers] = useState<TeamMember[]>([]);
+  const [sessionWishlists, setSessionWishlists] = useState<WishlistMap>({});
+  const [claimedMemberId, setClaimedMemberId] = useState<string | null>(() => {
     const code = localStorage.getItem(LS.sessionCode);
     if (!code) return null;
     return localStorage.getItem(`${LS.claimedMember}:${code}`) || null;
   });
-  const [uid, setUid] = useState(null);
+  const [uid, setUid] = useState<string | null>(null);
   const [ready, setReady] = useState(mode !== 'session');
   const [online, setOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine !== false
   );
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // online/offline listener
   useEffect(() => {
@@ -157,7 +220,7 @@ export function SessionProvider({ children }) {
       })
       .catch((err) => {
         if (!alive) return;
-        setError(err?.message || String(err));
+        setError((err as { message?: string })?.message || String(err));
         setReady(true);
       });
     return () => {
@@ -174,37 +237,37 @@ export function SessionProvider({ children }) {
     const sref = doc(db, 'sessions', sessionCode);
     const mref = collection(db, 'sessions', sessionCode, 'members');
     const wref = collection(db, 'sessions', sessionCode, 'wishlists');
-    const unsubs = [];
+    const unsubs: Array<() => void> = [];
     unsubs.push(
       onSnapshot(
         sref,
-        (snap) => setSessionDoc(snap.exists() ? snap.data() : null),
-        (err) => setError(err?.message || String(err))
+        (snap) => setSessionDoc(snap.exists() ? (snap.data() as SessionDoc) : null),
+        (err) => setError((err as { message?: string })?.message || String(err))
       )
     );
     unsubs.push(
       onSnapshot(
         mref,
         (snap) => {
-          const arr = [];
-          snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+          const arr: TeamMember[] = [];
+          snap.forEach((d) => arr.push({ id: d.id, ...(d.data() as Omit<TeamMember, 'id'>) }));
           arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
           setSessionMembers(arr);
         },
-        (err) => setError(err?.message || String(err))
+        (err) => setError((err as { message?: string })?.message || String(err))
       )
     );
     unsubs.push(
       onSnapshot(
         wref,
         (snap) => {
-          const map = {};
+          const map: WishlistMap = {};
           snap.forEach((d) => {
-            map[d.id] = d.data()?.picks || [];
+            map[d.id] = (d.data() as { picks?: string[] } | undefined)?.picks || [];
           });
           setSessionWishlists(map);
         },
-        (err) => setError(err?.message || String(err))
+        (err) => setError((err as { message?: string })?.message || String(err))
       )
     );
     return () => unsubs.forEach((fn) => fn());
@@ -214,7 +277,7 @@ export function SessionProvider({ children }) {
   const isFacilitator =
     mode === 'session' && !!sessionDoc && !!uid && sessionDoc.facilitatorUid === uid;
   const currentMemberId = mode === 'session' ? claimedMemberId : null;
-  const role =
+  const role: AppRole =
     mode === 'solo'
       ? 'solo'
       : mode !== 'session'
@@ -241,21 +304,21 @@ export function SessionProvider({ children }) {
 
   // ---------- setters (write-through in session mode) ----------
   const writeSessionField = useCallback(
-    async (patch) => {
+    async (patch: Record<string, unknown>) => {
       if (mode !== 'session' || !sessionCode || !firebaseEnabled) return;
       const fb = getFirebase();
       if (!fb) return;
       try {
         await updateDoc(doc(fb.db, 'sessions', sessionCode), patch);
       } catch (err) {
-        setError(err?.message || String(err));
+        setError((err as { message?: string })?.message || String(err));
       }
     },
     [mode, sessionCode]
   );
 
   const setTeam = useCallback(
-    (updater) => {
+    (updater: Updater<TeamMember[]>) => {
       if (mode !== 'session') {
         setSoloTeam(updater);
         return;
@@ -273,7 +336,7 @@ export function SessionProvider({ children }) {
           doc(db, 'sessions', sessionCode, 'members', id),
           { ...rest, order: idx },
           { merge: true }
-        ).catch((err) => setError(err?.message || String(err)));
+        ).catch((err) => setError((err as { message?: string })?.message || String(err)));
       });
       prevIds.forEach((id) => {
         if (!nextIds.has(id)) {
@@ -286,7 +349,7 @@ export function SessionProvider({ children }) {
   );
 
   const setWishlists = useCallback(
-    (updater) => {
+    (updater: Updater<WishlistMap>) => {
       if (mode !== 'session') {
         setSoloWishlists(updater);
         return;
@@ -309,14 +372,14 @@ export function SessionProvider({ children }) {
           doc(db, 'sessions', sessionCode, 'wishlists', memberId),
           { picks: after },
           { merge: true }
-        ).catch((err) => setError(err?.message || String(err)));
+        ).catch((err) => setError((err as { message?: string })?.message || String(err)));
       });
     },
     [mode, isFacilitator, claimedMemberId, sessionWishlists, sessionCode]
   );
 
   const setSchedule = useCallback(
-    (updater) => {
+    (updater: Updater<Schedule>) => {
       if (mode !== 'session') {
         setSoloSchedule(updater);
         return;
@@ -330,7 +393,7 @@ export function SessionProvider({ children }) {
   );
 
   const setAllHands = useCallback(
-    (updater) => {
+    (updater: Updater<AllHands>) => {
       if (mode !== 'session') {
         setSoloAllHands(updater);
         return;
@@ -344,7 +407,7 @@ export function SessionProvider({ children }) {
   );
 
   const setTimeLogs = useCallback(
-    (updater) => {
+    (updater: Updater<TimeLogs>) => {
       if (mode !== 'session') {
         setSoloTimeLogs(updater);
         return;
@@ -358,7 +421,7 @@ export function SessionProvider({ children }) {
   );
 
   const setSettings = useCallback(
-    (updater) => {
+    (updater: Updater<Settings>) => {
       if (mode !== 'session') {
         setSoloSettings((prev) => {
           const next = typeof updater === 'function' ? updater(prev) : updater;
@@ -420,13 +483,13 @@ export function SessionProvider({ children }) {
     setError(null);
   }, [soloSettings.theme]);
 
-  const createSession = useCallback(async ({ facilitatorPin } = {}) => {
+  const createSession = useCallback(async ({ facilitatorPin }: { facilitatorPin?: string } = {}) => {
     if (!firebaseEnabled) {
       throw new Error(
         'Firebase not configured. Add VITE_FIREBASE_* values in .env (see .env.example).'
       );
     }
-    const fb = getFirebase();
+    const fb = getFirebase()!;
     const authUid = await ensureAnonymousAuth();
     let code = null;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -457,11 +520,11 @@ export function SessionProvider({ children }) {
     return { code };
   }, []);
 
-  const joinSession = useCallback(async (rawCode) => {
+  const joinSession = useCallback(async (rawCode: string) => {
     if (!firebaseEnabled) throw new Error('Firebase not configured.');
     const code = String(rawCode || '').trim().toUpperCase();
     if (!code) throw new Error('Enter a room code.');
-    const fb = getFirebase();
+    const fb = getFirebase()!;
     await ensureAnonymousAuth();
     const snap = await getDoc(doc(fb.db, 'sessions', code));
     if (!snap.exists()) throw new Error(`Session "${code}" not found.`);
@@ -475,15 +538,15 @@ export function SessionProvider({ children }) {
   }, []);
 
   const claimMember = useCallback(
-    async (memberId, pin) => {
+    async (memberId: string, pin: string) => {
       if (!firebaseEnabled) throw new Error('Firebase not configured.');
       if (!sessionCode) throw new Error('Not in a session.');
-      const fb = getFirebase();
+      const fb = getFirebase()!;
       const authUid = await ensureAnonymousAuth();
       const mref = doc(fb.db, 'sessions', sessionCode, 'members', memberId);
       const msnap = await getDoc(mref);
       if (!msnap.exists()) throw new Error('Member not found.');
-      const data = msnap.data();
+      const data = msnap.data() as { claimedByUid?: string; pinHash?: string };
       if (data.claimedByUid && data.claimedByUid !== authUid) {
         throw new Error('Someone else already claimed this member on another device.');
       }
@@ -512,7 +575,7 @@ export function SessionProvider({ children }) {
   }, [isFacilitator, writeSessionField]);
 
   const setStatus = useCallback(
-    (status) => {
+    (status: string) => {
       if (!isFacilitator) return;
       return writeSessionField({ status });
     },
